@@ -4,11 +4,7 @@
     "type": "project",
     "require": {
         "php": ">=7.4",
-        "ext-pdo": "*",
-        "ext-pdo_firebird": "*",
-        "automattic/woocommerce": "^3.0",
-        "vlucas/phpdotenv": "^5.5",
-        "monolog/monolog": "^2.9"
+        "automattic/woocommerce": "^3.0"
     },
     "autoload": {
         "psr-4": {
