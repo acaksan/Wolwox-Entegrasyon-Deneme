@@ -1,112 +1,168 @@
 <?php
-
-// Yetki kontrolü
-function checkPermission($permission) {
-    // TODO: Kullanıcı yetki sistemi entegre edildiğinde güncellenecek
-    return true;
+// Menü yapısı
+function getMenu() {
+    return [
+        [
+            'title' => 'Dashboard',
+            'icon' => 'fas fa-tachometer-alt',
+            'page' => 'dashboard'
+        ],
+        [
+            'title' => 'Siparişler',
+            'icon' => 'fas fa-shopping-cart',
+            'page' => 'orders'
+        ],
+        [
+            'title' => 'Müşteriler',
+            'icon' => 'fas fa-users',
+            'page' => 'customers'
+        ],
+        [
+            'title' => 'Ödemeler',
+            'icon' => 'fas fa-credit-card',
+            'page' => 'payments'
+        ],
+        [
+            'title' => 'Ürünler',
+            'icon' => 'fas fa-box',
+            'page' => 'products',
+            'submenu' => [
+                [
+                    'title' => 'Ürün Listesi',
+                    'page' => 'products'
+                ],
+                [
+                    'title' => 'Kategori Eşleştirme',
+                    'page' => 'products',
+                    'params' => ['view' => 'categories']
+                ],
+                [
+                    'title' => 'Toplu İşlemler',
+                    'page' => 'products',
+                    'params' => ['view' => 'bulk']
+                ]
+            ]
+        ],
+        [
+            'title' => 'Senkronizasyon',
+            'icon' => 'fas fa-sync',
+            'page' => 'sync',
+            'submenu' => [
+                [
+                    'title' => 'Durum',
+                    'page' => 'sync'
+                ],
+                [
+                    'title' => 'Geçmiş',
+                    'page' => 'sync',
+                    'params' => ['view' => 'history']
+                ],
+                [
+                    'title' => 'Hata Logları',
+                    'page' => 'sync',
+                    'params' => ['view' => 'logs']
+                ]
+            ]
+        ],
+        [
+            'title' => 'Raporlar',
+            'icon' => 'fas fa-chart-bar',
+            'page' => 'reports',
+            'submenu' => [
+                [
+                    'title' => 'Satış Raporları',
+                    'page' => 'reports',
+                    'params' => ['type' => 'sales']
+                ],
+                [
+                    'title' => 'Stok Raporları',
+                    'page' => 'reports',
+                    'params' => ['type' => 'stock']
+                ],
+                [
+                    'title' => 'Müşteri Raporları',
+                    'page' => 'reports',
+                    'params' => ['type' => 'customers']
+                ]
+            ]
+        ],
+        [
+            'title' => 'Ayarlar',
+            'icon' => 'fas fa-cog',
+            'page' => 'settings',
+            'submenu' => [
+                [
+                    'title' => 'Genel Ayarlar',
+                    'page' => 'settings'
+                ],
+                [
+                    'title' => 'Stok Ayarları',
+                    'page' => 'settings',
+                    'params' => ['tab' => 'stock']
+                ],
+                [
+                    'title' => 'Sipariş Ayarları',
+                    'page' => 'settings',
+                    'params' => ['tab' => 'orders']
+                ],
+                [
+                    'title' => 'Cari Ayarları',
+                    'page' => 'settings',
+                    'params' => ['tab' => 'customers']
+                ]
+            ]
+        ],
+        [
+            'title' => 'Yardım',
+            'icon' => 'fas fa-question-circle',
+            'page' => 'help'
+        ]
+    ];
 }
 
-// Firebird bağlantısı
-function getFirebirdConnection() {
-    static $connection = null;
+// URL oluşturma fonksiyonu
+function buildUrl($page, $params = []) {
+    $query = empty($params) ? '' : '&' . http_build_query($params);
+    return "?page={$page}{$query}";
+}
+
+// Aktif menü kontrolü
+function isActiveMenu($page) {
+    $current_page = $_GET['page'] ?? 'dashboard';
+    return $page === $current_page ? 'active' : '';
+}
+
+// Alt menü aktif kontrolü
+function isActiveSubmenu($page, $params = []) {
+    if (!isActiveMenu($page)) {
+        return '';
+    }
     
-    if ($connection === null) {
-        try {
-            putenv("FIREBIRD=" . FB_CLIENT_LIB);
-            $dsn = "firebird:dbname=" . FB_HOST . ":" . FB_DATABASE . ";charset=" . FB_CHARSET;
-            $connection = new PDO($dsn, FB_USERNAME, FB_PASSWORD);
-            $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            error_log("Database connection failed: " . $e->getMessage());
-            throw new Exception("Veritabanı bağlantısı kurulamadı.");
+    foreach ($params as $key => $value) {
+        if (!isset($_GET[$key]) || $_GET[$key] !== $value) {
+            return '';
         }
     }
     
-    return $connection;
+    return 'active';
 }
 
-// Güvenli string
-function sanitize($string) {
-    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+// Mesaj gösterme fonksiyonları
+function displayMessage($message, $type = 'info') {
+    $_SESSION['message'] = [
+        'text' => $message,
+        'type' => $type
+    ];
 }
 
-// Para formatı
-function formatMoney($amount) {
-    return number_format($amount, 2, ',', '.');
-}
-
-// Tarih formatı
-function formatDate($date, $format = 'd.m.Y H:i') {
-    return date($format, strtotime($date));
-}
-
-// Ajax yanıtı
-function jsonResponse($success, $message = '', $data = null) {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => $success,
-        'message' => $message,
-        'data' => $data
-    ]);
-    exit;
-}
-
-// Menü aktif kontrolü
-function isMenuActive($page) {
-    $current_page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
-    return $current_page === $page;
-}
-
-// Hata mesajı
-function showError($message) {
-    return '<div class="alert alert-danger" role="alert">' . $message . '</div>';
-}
-
-// Başarı mesajı
-function showSuccess($message) {
-    return '<div class="alert alert-success" role="alert">' . $message . '</div>';
-}
-
-// Bilgi mesajı
-function showInfo($message) {
-    return '<div class="alert alert-info" role="alert">' . $message . '</div>';
-}
-
-// Sayfalama
-function pagination($total, $per_page, $current_page, $url) {
-    $total_pages = ceil($total / $per_page);
-    
-    if ($total_pages <= 1) return '';
-    
-    $html = '<nav aria-label="Sayfalama"><ul class="pagination justify-content-center">';
-    
-    // Önceki sayfa
-    if ($current_page > 1) {
-        $html .= sprintf(
-            '<li class="page-item"><a class="page-link" href="%s">Önceki</a></li>',
-            sprintf($url, $current_page - 1)
-        );
+function showMessage() {
+    if (isset($_SESSION['message'])) {
+        $message = $_SESSION['message'];
+        echo '<div class="alert alert-' . $message['type'] . ' alert-dismissible fade show" role="alert">';
+        echo $message['text'];
+        echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+        echo '</div>';
+        unset($_SESSION['message']);
     }
-    
-    // Sayfa numaraları
-    for ($i = max(1, $current_page - 2); $i <= min($total_pages, $current_page + 2); $i++) {
-        $html .= sprintf(
-            '<li class="page-item %s"><a class="page-link" href="%s">%d</a></li>',
-            $i == $current_page ? 'active' : '',
-            sprintf($url, $i),
-            $i
-        );
-    }
-    
-    // Sonraki sayfa
-    if ($current_page < $total_pages) {
-        $html .= sprintf(
-            '<li class="page-item"><a class="page-link" href="%s">Sonraki</a></li>',
-            sprintf($url, $current_page + 1)
-        );
-    }
-    
-    $html .= '</ul></nav>';
-    
-    return $html;
 }
+?>
