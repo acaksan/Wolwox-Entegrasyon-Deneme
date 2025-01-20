@@ -46,12 +46,13 @@ if (!function_exists('getFirebirdConnection')) {
                     throw new Exception('Wolvox bağlantı hatası: Firebird eklentisi yüklü değil. Lütfen php_interbase.dll dosyasını PHP kurulumunuza ekleyin.');
                 }
 
-                // DSN formatı: firebird:dbname=hostname/port:database
+                // DSN formatı: firebird:dbname=hostname/port:database;charset=UTF8
                 $dsn = sprintf(
-                    'firebird:dbname=%s/%s:%s',  // charset parametresini kaldır
+                    'firebird:dbname=%s/%s:%s;charset=%s',
                     FB_HOST,
                     FB_PORT,
-                    str_replace('\\', '/', FB_DATABASE)  // Ters slashları düz slasha çevir
+                    str_replace('\\', '/', FB_DATABASE),  // Ters slashları düz slasha çevir
+                    FB_CHARSET
                 );
 
                 $options = [
@@ -63,9 +64,6 @@ if (!function_exists('getFirebirdConnection')) {
                 ];
 
                 $pdo = new PDO($dsn, FB_USERNAME, FB_PASSWORD, $options);
-                
-                // Karakter seti ayarla
-                $pdo->exec("SET NAMES '" . FB_CHARSET . "'");
                 
             } catch (PDOException $e) {
                 error_log("Veritabanı bağlantı hatası: " . $e->getMessage());
