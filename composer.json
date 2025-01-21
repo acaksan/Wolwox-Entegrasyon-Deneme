@@ -1,0 +1,16 @@
+{
+  "name": "acaksan/Wolwox-Entegrasyon-Deneme",
+  "description": "Wolvox WooCommerce Entegrasyonu",
+  "require": {
+    "php": ">=7.4",
+    "some/package": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Namespace\\": "src/"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit"
+  }
+}
