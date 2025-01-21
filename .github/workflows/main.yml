@@ -35,3 +35,10 @@ jobs:
           git add .
           git commit -m "Auto deploy" || echo "No changes to commit"
           git push 
+
+      - name: Add requirements.txt
+        run: |
+          git add requirements.txt
+          git commit -m "Add requirements.txt file"
+          git remote set-url origin https://acaksan:${{ secrets.GITHUB_TOKEN }}@github.com/acaksan/Wolwox-Entegrasyon-Deneme.git
+          git push origin main 
