@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-7">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>Wolvox - WooCommerce Entegrasyonu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        }
+        .sidebar .nav-link {
+            color: #333;
+            padding: .5rem 1rem;
+        }
+        .sidebar .nav-link.active {
+            color: #2470dc;
+        }
+        .sidebar .nav-link:hover {
+            color: #2470dc;
+        }
+        .sidebar .nav-link i {
+            margin-right: 8px;
+            width: 20px;
+            text-align: center;
+        }
+        .product-image {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
+        }
+        .badge-stock {
+            font-size: 0.9em;
+        }
+        .category-path {
+            font-size: 0.85em;
+            color: #666;
+        }
+        .submenu {
+            margin-left: 20px;
+        }
+        .settings-section {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-section="dashboard">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        
+                        <!-- Ürün Yönetimi -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#productMenu">
+                                <i class="fas fa-box"></i> Ürün Yönetimi
+                                <i class="fas fa-chevron-down float-end"></i>
+                            </a>
+                            <div class="collapse submenu" id="productMenu">
+                                <a class="nav-link" href="#" data-section="products">
+                                    <i class="fas fa-list"></i> Ürün Listesi
+                                </a>
+                                <a class="nav-link" href="#" data-section="categories">
+                                    <i class="fas fa-tags"></i> Kategoriler
+                                </a>
+                                <a class="nav-link" href="#" data-section="sync">
+                                    <i class="fas fa-sync"></i> Senkronizasyon
+                                </a>
+                            </div>
+                        </li>
+                        
+                        <!-- Stok Yönetimi -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#stockMenu">
+                                <i class="fas fa-warehouse"></i> Stok Yönetimi
+                                <i class="fas fa-chevron-down float-end"></i>
+                            </a>
+                            <div class="collapse submenu" id="stockMenu">
+                                <a class="nav-link" href="#" data-section="stock-list">
+                                    <i class="fas fa-boxes"></i> Stok Listesi
+                                </a>
+                                <a class="nav-link" href="#" data-section="stock-movements">
+                                    <i class="fas fa-exchange-alt"></i> Stok Hareketleri
+                                </a>
+                            </div>
+                        </li>
+                        
+                        <!-- Ayarlar -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#settingsMenu">
+                                <i class="fas fa-cog"></i> Ayarlar
+                                <i class="fas fa-chevron-down float-end"></i>
+                            </a>
+                            <div class="collapse submenu" id="settingsMenu">
+                                <a class="nav-link" href="#" data-section="woocommerce">
+                                    <i class="fab fa-wordpress"></i> WooCommerce
+                                </a>
+                                <a class="nav-link" href="#" data-section="database">
+                                    <i class="fas fa-database"></i> Veritabanı
+                                </a>
+                                <a class="nav-link" href="#" data-section="general">
+                                    <i class="fas fa-sliders-h"></i> Genel Ayarlar
+                                </a>
+                            </div>
+                        </li>
+                        
+                        <!-- Raporlar -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#reportsMenu">
+                                <i class="fas fa-chart-bar"></i> Raporlar
+                                <i class="fas fa-chevron-down float-end"></i>
+                            </a>
+                            <div class="collapse submenu" id="reportsMenu">
+                                <a class="nav-link" href="#" data-section="sync-logs">
+                                    <i class="fas fa-history"></i> Senkronizasyon Logları
+                                </a>
+                                <a class="nav-link" href="#" data-section="error-logs">
+                                    <i class="fas fa-exclamation-triangle"></i> Hata Logları
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Ana içerik -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Dashboard -->
+                <div class="section" id="dashboard-section">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2">Dashboard</h1>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Toplam Ürün</h5>
+                                    <p class="card-text h3" id="total-products">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Stokta Olan</h5>
+                                    <p class="card-text h3" id="in-stock">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Stok Dışı</h5>
+                                    <p class="card-text h3" id="out-of-stock">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Son Senkronizasyon</h5>
+                                    <p class="card-text" id="last-sync">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ürün Listesi -->
+                <div class="section" id="products-section" style="display: none;">
+                    <h1 class="h2 pt-3">Ürün Listesi</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="searchInput" placeholder="Ürün ara...">
+                                        <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                                            <i class="fas fa-search"></i> Ara
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-primary" id="syncSelectedProducts">
+                                        <i class="fas fa-sync"></i> Seçili Ürünleri Senkronize Et
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                <input type="checkbox" class="form-check-input" id="selectAllProducts">
+                                            </th>
+                                            <th>Stok Kodu</th>
+                                            <th>Barkod</th>
+                                            <th>Ürün Adı</th>
+                                            <th>Marka</th>
+                                            <th>Model</th>
+                                            <th>Stok Miktarı</th>
+                                            <th>Satış Fiyatı</th>
+                                            <th>KDV</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="productTableBody">
+                                        <!-- Ürünler JavaScript ile doldurulacak -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diğer Bölümler -->
+                <div class="section" id="categories-section" style="display: none;">
+                    <h1 class="h2 pt-3">Kategoriler</h1>
+                    <p>Kategori yönetimi yakında eklenecek...</p>
+                </div>
+
+                <div class="section" id="sync-section" style="display: none;">
+                    <h1 class="h2 pt-3">Senkronizasyon</h1>
+                    <p>Senkronizasyon ayarları yakında eklenecek...</p>
+                </div>
+
+                <div class="section" id="stock-list-section" style="display: none;">
+                    <h1 class="h2 pt-3">Stok Listesi</h1>
+                    <p>Stok listesi yakında eklenecek...</p>
+                </div>
+
+                <div class="section" id="stock-movements-section" style="display: none;">
+                    <h1 class="h2 pt-3">Stok Hareketleri</h1>
+                    <p>Stok hareketleri yakında eklenecek...</p>
+                </div>
+
+                <div class="section" id="woocommerce-section" style="display: none;">
+                    <h1 class="h2 pt-3">WooCommerce Ayarları</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="woocommerceForm">
+                                <div class="mb-3">
+                                    <label for="wc_url" class="form-label">Site URL</label>
+                                    <input type="url" class="form-control" id="wc_url" name="url" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="wc_consumer_key" class="form-label">Consumer Key</label>
+                                    <input type="text" class="form-control" id="wc_consumer_key" name="consumer_key" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="wc_consumer_secret" class="form-label">Consumer Secret</label>
+                                    <input type="password" class="form-control" id="wc_consumer_secret" name="consumer_secret" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="wc_version" class="form-label">API Versiyonu</label>
+                                    <input type="text" class="form-control" id="wc_version" name="version" value="wc/v3" required>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="testWooCommerce">
+                                        <i class="fas fa-plug"></i> Bağlantıyı Test Et
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="database-section" style="display: none;">
+                    <h1 class="h2 pt-3">Veritabanı Ayarları</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="databaseForm">
+                                <div class="mb-3">
+                                    <label for="fb_host" class="form-label">Sunucu</label>
+                                    <input type="text" class="form-control" id="fb_host" name="host" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fb_database" class="form-label">Veritabanı Yolu</label>
+                                    <input type="text" class="form-control" id="fb_database" name="database" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fb_user" class="form-label">Kullanıcı Adı</label>
+                                    <input type="text" class="form-control" id="fb_user" name="user" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fb_password" class="form-label">Şifre</label>
+                                    <input type="password" class="form-control" id="fb_password" name="password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fb_charset" class="form-label">Karakter Seti</label>
+                                    <input type="text" class="form-control" id="fb_charset" name="charset" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fb_port" class="form-label">Port</label>
+                                    <input type="number" class="form-control" id="fb_port" name="port" required>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="testDatabase">
+                                        <i class="fas fa-plug"></i> Bağlantıyı Test Et
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="general-section" style="display: none;">
+                    <h1 class="h2 pt-3">Genel Ayarlar</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="generalForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Otomatik Senkronizasyon</label>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="auto_sync" name="auto_sync">
+                                        <label class="form-check-label" for="auto_sync">Otomatik senkronizasyonu aktif et</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="sync_interval" class="form-label">Senkronizasyon Aralığı (dakika)</label>
+                                    <input type="number" class="form-control" id="sync_interval" name="sync_interval" min="1" value="30">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Senkronizasyon Seçenekleri</label>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="sync_stock" name="sync_stock" checked>
+                                        <label class="form-check-label" for="sync_stock">Stok miktarlarını senkronize et</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="sync_price" name="sync_price" checked>
+                                        <label class="form-check-label" for="sync_price">Fiyatları senkronize et</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="sync_images" name="sync_images" checked>
+                                        <label class="form-check-label" for="sync_images">Resimleri senkronize et</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Kaydet
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="sync-logs-section" style="display: none;">
+                    <h1 class="h2 pt-3">Senkronizasyon Logları</h1>
+                    <p>Senkronizasyon logları yakında eklenecek...</p>
+                </div>
+
+                <div class="section" id="error-logs-section" style="display: none;">
+                    <h1 class="h2 pt-3">Hata Logları</h1>
+                    <p>Hata logları yakında eklenecek...</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Ürün listesi
+        let products = [];
+        
+        // Ürünleri yükle
+        function loadProducts() {
+            fetch('/api/products')
+                .then(response => response.json())
+                .then(products => {
+                    const tbody = document.getElementById('productTableBody');
+                    tbody.innerHTML = '';
+                    
+                    products.forEach(product => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <input type="checkbox" class="form-check-input product-checkbox" value="${product.stok_kodu}">
+                            </td>
+                            <td>${product.stok_kodu}</td>
+                            <td>${product.barkod}</td>
+                            <td>${product.stok_adi}</td>
+                            <td>${product.marka}</td>
+                            <td>${product.model}</td>
+                            <td>${product.stok_miktari}</td>
+                            <td>${product.satis_fiyati.toFixed(2)} ₺</td>
+                            <td>%${product.kdv_orani}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info view-product" data-product='${JSON.stringify(product)}'>
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success sync-product" data-stock-code="${product.stok_kodu}">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    // Ürün detay butonlarına tıklama olayı ekle
+                    document.querySelectorAll('.view-product').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const product = JSON.parse(this.dataset.product);
+                            showProductDetails(product);
+                        });
+                    });
+                    
+                    // Tekli senkronizasyon butonlarına tıklama olayı ekle
+                    document.querySelectorAll('.sync-product').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const stockCode = this.dataset.stockCode;
+                            syncProducts([stockCode]);
+                        });
+                    });
+                });
+        }
+        
+        // Ürün detaylarını göster
+        function showProductDetails(product) {
+            const modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
+            document.getElementById('modalProductTitle').textContent = product.stok_adi;
+            
+            let detailsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Temel Bilgiler</h5>
+                        <p><strong>Stok Kodu:</strong> ${product.stok_kodu}</p>
+                        <p><strong>Barkod:</strong> ${product.barkod}</p>
+                        <p><strong>Birim:</strong> ${product.birim}</p>
+                        <p><strong>Marka:</strong> ${product.marka}</p>
+                        <p><strong>Model:</strong> ${product.model}</p>
+                        <p><strong>Menşei:</strong> ${product.mensei}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Fiyat Bilgileri</h5>
+                        <p><strong>Satış Fiyatı 1:</strong> ${product.satis_fiyati.toFixed(2)} ₺</p>
+                        <p><strong>Satış Fiyatı 2:</strong> ${product.satis_fiyati2.toFixed(2)} ₺</p>
+                        <p><strong>Satış Fiyatı 3:</strong> ${product.satis_fiyati3.toFixed(2)} ₺</p>
+                        <p><strong>Satış Fiyatı 4:</strong> ${product.satis_fiyati4.toFixed(2)} ₺</p>
+                        <p><strong>Satış Fiyatı 5:</strong> ${product.satis_fiyati5.toFixed(2)} ₺</p>
+                        <p><strong>KDV Oranı:</strong> %${product.kdv_orani}</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h5>Stok Bilgileri</h5>
+                        <p><strong>Stok Miktarı:</strong> ${product.stok_miktari}</p>
+                        <p><strong>Ana Grup:</strong> ${product.ana_grup}</p>
+                        <p><strong>Ara Grup:</strong> ${product.ara_grup}</p>
+                        <p><strong>Alt Grup:</strong> ${product.alt_grup}</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h5>Açıklama</h5>
+                        <p>${product.aciklama.replace(/\n/g, '<br>')}</p>
+                    </div>
+                </div>
+            `;
+            
+            if (product.resimler && product.resimler.length > 0) {
+                detailsHtml += `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h5>Resimler</h5>
+                            <div class="row">
+                                ${product.resimler.map(img => `
+                                    <div class="col-md-4 mb-3">
+                                        <img src="${img}" class="img-fluid" alt="Ürün resmi">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('modalProductBody').innerHTML = detailsHtml;
+            modal.show();
+        }
+        
+        // Seçili ürünleri senkronize et
+        function syncProducts(stockCodes) {
+            // TODO: Senkronizasyon API'si eklenecek
+            console.log('Senkronize edilecek ürünler:', stockCodes);
+            alert('Seçili ürünler senkronize edildi');
+        }
+        
+        // Tüm ürünleri seç/kaldır
+        document.getElementById('selectAllProducts').addEventListener('change', function() {
+            document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+        
+        // Seçili ürünleri senkronize et butonu
+        document.getElementById('syncSelectedProducts').addEventListener('click', function() {
+            const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedProducts.length === 0) {
+                alert('Lütfen senkronize edilecek ürünleri seçin');
+                return;
+            }
+            
+            syncProducts(selectedProducts);
+        });
+        
+        // Arama işlevi
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#productTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+        
+        // Enter tuşu ile arama
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('searchButton').click();
+            }
+        });
+        
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            // Menü işlemleri
+            document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Aktif menüyü güncelle
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // İlgili bölümü göster
+                    const sectionId = this.getAttribute('data-section') + '-section';
+                    document.querySelectorAll('.section').forEach(section => {
+                        section.style.display = section.id === sectionId ? 'block' : 'none';
+                    });
+                    
+                    // Ürünler bölümü seçildiyse verileri yükle
+                    if (sectionId === 'products-section' && products.length === 0) {
+                        loadProducts();
+                    }
+                });
+            });
+            
+            // İlk yüklemede dashboard'ı göster
+            document.querySelector('.nav-link[data-section="dashboard"]').click();
+            
+            // Ayarlar formları için event listener'lar
+            // WooCommerce ayarlarını yükle
+            fetch('/api/settings/woocommerce')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('wc_url').value = data.url;
+                    document.getElementById('wc_consumer_key').value = data.consumer_key;
+                    document.getElementById('wc_consumer_secret').value = data.consumer_secret;
+                    document.getElementById('wc_version').value = data.version;
+                });
+            
+            // Veritabanı ayarlarını yükle
+            fetch('/api/settings/database')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('fb_host').value = data.host;
+                    document.getElementById('fb_database').value = data.database;
+                    document.getElementById('fb_user').value = data.user;
+                    document.getElementById('fb_password').value = data.password;
+                    document.getElementById('fb_charset').value = data.charset;
+                    document.getElementById('fb_port').value = data.port;
+                });
+            
+            // WooCommerce form submit
+            document.getElementById('woocommerceForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    url: document.getElementById('wc_url').value,
+                    consumer_key: document.getElementById('wc_consumer_key').value,
+                    consumer_secret: document.getElementById('wc_consumer_secret').value,
+                    version: document.getElementById('wc_version').value
+                };
+                
+                fetch('/api/settings/woocommerce', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('WooCommerce ayarları kaydedildi');
+                    } else {
+                        alert('Hata: ' + data.message);
+                    }
+                });
+            });
+            
+            // Veritabanı form submit
+            document.getElementById('databaseForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    host: document.getElementById('fb_host').value,
+                    database: document.getElementById('fb_database').value,
+                    user: document.getElementById('fb_user').value,
+                    password: document.getElementById('fb_password').value,
+                    charset: document.getElementById('fb_charset').value,
+                    port: parseInt(document.getElementById('fb_port').value)
+                };
+                
+                fetch('/api/settings/database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Veritabanı ayarları kaydedildi');
+                    } else {
+                        alert('Hata: ' + data.message);
+                    }
+                });
+            });
+            
+            // WooCommerce bağlantı testi
+            document.getElementById('testWooCommerce').addEventListener('click', function() {
+                const formData = {
+                    url: document.getElementById('wc_url').value,
+                    consumer_key: document.getElementById('wc_consumer_key').value,
+                    consumer_secret: document.getElementById('wc_consumer_secret').value,
+                    version: document.getElementById('wc_version').value
+                };
+                
+                fetch('/api/test/woocommerce', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('WooCommerce bağlantısı başarılı');
+                    } else {
+                        alert('Bağlantı hatası: ' + data.message);
+                    }
+                });
+            });
+            
+            // Veritabanı bağlantı testi
+            document.getElementById('testDatabase').addEventListener('click', function() {
+                const formData = {
+                    host: document.getElementById('fb_host').value,
+                    database: document.getElementById('fb_database').value,
+                    user: document.getElementById('fb_user').value,
+                    password: document.getElementById('fb_password').value,
+                    charset: document.getElementById('fb_charset').value,
+                    port: parseInt(document.getElementById('fb_port').value)
+                };
+                
+                fetch('/api/test/database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Veritabanı bağlantısı başarılı');
+                    } else {
+                        alert('Bağlantı hatası: ' + data.message);
+                    }
+                });
+            });
+            
+            // Genel ayarlar form submit
+            document.getElementById('generalForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    auto_sync: document.getElementById('auto_sync').checked,
+                    sync_interval: parseInt(document.getElementById('sync_interval').value),
+                    sync_options: {
+                        stock: document.getElementById('sync_stock').checked,
+                        price: document.getElementById('sync_price').checked,
+                        images: document.getElementById('sync_images').checked
+                    }
+                };
+                
+                // TODO: Genel ayarları kaydetme API'si eklenecek
+                console.log('Genel ayarlar:', formData);
+                alert('Genel ayarlar kaydedildi');
+            });
+        });
+        
+        // Kategori ağacını oluştur
+        function createCategoryTree(categories, treeElement, type) {
+            treeElement.innerHTML = '';
+            
+            categories.forEach(category => {
+                const li = document.createElement('li');
+                li.className = 'mb-2';
+                
+                const div = document.createElement('div');
+                div.className = 'd-flex align-items-center';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = type === 'wolvox' ? 'wolvoxCategory' : 'wooCategory';
+                radio.value = category.id;
+                radio.className = 'form-check-input me-2';
+                
+                const label = document.createElement('span');
+                label.textContent = category.name;
+                
+                div.appendChild(radio);
+                div.appendChild(label);
+                
+                if (type === 'woo') {
+                    const btnGroup = document.createElement('div');
+                    btnGroup.className = 'btn-group btn-group-sm ms-auto';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-outline-primary';
+                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                    editBtn.onclick = () => editWooCategory(category);
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-outline-danger';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.onclick = () => deleteWooCategory(category.id);
+                    
+                    btnGroup.appendChild(editBtn);
+                    btnGroup.appendChild(deleteBtn);
+                    div.appendChild(btnGroup);
+                }
+                
+                li.appendChild(div);
+                
+                if (category.subcategories && category.subcategories.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-unstyled ms-4 mt-2';
+                    createCategoryTree(category.subcategories, ul, type);
+                    li.appendChild(ul);
+                }
+                
+                treeElement.appendChild(li);
+            });
+        }
+        
+        // Kategorileri yükle
+        async function loadCategories() {
+            try {
+                // Wolvox kategorilerini yükle
+                const wolvoxResponse = await fetch('/api/categories/wolvox');
+                const wolvoxCategories = await wolvoxResponse.json();
+                createCategoryTree(wolvoxCategories, document.getElementById('wolvoxCategoryTree'), 'wolvox');
+                
+                // WooCommerce kategorilerini yükle
+                const wooResponse = await fetch('/api/categories/woocommerce');
+                const wooCategories = await wooResponse.json();
+                createCategoryTree(wooCategories, document.getElementById('wooCategoryTree'), 'woo');
+                
+                // Üst kategori seçimini güncelle
+                updateParentSelect(wooCategories);
+                
+                // Eşleştirmeleri yükle
+                const mappingResponse = await fetch('/api/categories/mapping');
+                const mappings = await mappingResponse.json();
+                updateMappingTable(mappings);
+            } catch (error) {
+                console.error('Kategoriler yüklenirken hata:', error);
+                alert('Kategoriler yüklenirken bir hata oluştu.');
+            }
+        }
+        
+        // Eşleştirme tablosunu güncelle
+        function updateMappingTable(mappings) {
+            const tbody = document.getElementById('categoryMappingTable');
+            tbody.innerHTML = '';
+            
+            mappings.forEach(mapping => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${mapping.wolvoxCategory}</td>
+                    <td>${mapping.wooCategory}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteMapping(${mapping.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // Üst kategori seçimini güncelle
+        function updateParentSelect(categories, parentSelect = document.getElementById('categoryParent')) {
+            parentSelect.innerHTML = '<option value="0">Ana Kategori</option>';
+            
+            function addOptions(cats, level = 0) {
+                cats.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = '  '.repeat(level) + category.name;
+                    parentSelect.appendChild(option);
+                    
+                    if (category.subcategories && category.subcategories.length > 0) {
+                        addOptions(category.subcategories, level + 1);
+                    }
+                });
+            }
+            
+            addOptions(categories);
+        }
+        
+        // WooCommerce kategorisini düzenle
+        function editWooCategory(category) {
+            // TODO: Düzenleme modalını göster
+            console.log('Düzenlenecek kategori:', category);
+        }
+        
+        // WooCommerce kategorisini sil
+        async function deleteWooCategory(categoryId) {
+            if (!confirm('Bu kategoriyi silmek istediğinizden emin misiniz?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/categories/woocommerce/${categoryId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Kategori silinemedi');
+                }
+                
+                await loadCategories();
+            } catch (error) {
+                console.error('Kategori silinirken hata:', error);
+                alert('Kategori silinirken bir hata oluştu.');
+            }
+        }
+        
+        // Kategori eşleştirmesi yap
+        document.getElementById('mapCategories').addEventListener('click', async function() {
+            const wolvoxSelected = document.querySelector('#wolvoxCategoryTree input:checked');
+            const wooSelected = document.querySelector('#wooCategoryTree input:checked');
+            
+            if (!wolvoxSelected || !wooSelected) {
+                alert('Lütfen her iki taraftan da bir kategori seçin.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/categories/mapping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        wolvoxCategoryId: wolvoxSelected.value,
+                        wooCategoryId: wooSelected.value
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Eşleştirme oluşturulamadı');
+                }
+                
+                await loadCategories();
+            } catch (error) {
+                console.error('Eşleştirme yapılırken hata:', error);
+                alert('Eşleştirme yapılırken bir hata oluştu.');
+            }
+        });
+        
+        // Eşleştirmeyi kaldır
+        async function deleteMapping(mappingId) {
+            if (!confirm('Bu eşleştirmeyi kaldırmak istediğinizden emin misiniz?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/categories/mapping/${mappingId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Eşleştirme kaldırılamadı');
+                }
+                
+                await loadCategories();
+            } catch (error) {
+                console.error('Eşleştirme kaldırılırken hata:', error);
+                alert('Eşleştirme kaldırılırken bir hata oluştu.');
+            }
+        }
+        
+        // Yeni kategori kaydet
+        document.getElementById('saveNewCategory').addEventListener('click', async function() {
+            const form = document.getElementById('newWooCategoryForm');
+            
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const data = {
+                name: document.getElementById('categoryName').value,
+                slug: document.getElementById('categorySlug').value || undefined,
+                parent: parseInt(document.getElementById('categoryParent').value),
+                description: document.getElementById('categoryDescription').value
+            };
+            
+            try {
+                const response = await fetch('/api/categories/woocommerce', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Kategori oluşturulamadı');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('newWooCategoryModal')).hide();
+                form.reset();
+                await loadCategories();
+            } catch (error) {
+                console.error('Kategori oluşturulurken hata:', error);
+                alert('Kategori oluşturulurken bir hata oluştu.');
+            }
+        });
+    </script>
+</body>
+</html>

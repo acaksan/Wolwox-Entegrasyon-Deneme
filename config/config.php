@@ -35,42 +35,54 @@ if (DEBUG_MODE) {
 // Timezone ayarı
 date_default_timezone_set('Europe/Istanbul');
 
-// PDO Firebird bağlantı fonksiyonu
+// Firebird bağlantısı fonksiyonu
 if (!function_exists('getFirebirdConnection')) {
     function getFirebirdConnection() {
-        static $pdo = null;
+        static $db = null;
+        static $transaction = null;
         
-        if ($pdo === null) {
+        if ($db === null) {
             try {
-                if (!extension_loaded('pdo_firebird')) {
+                if (!function_exists('ibase_connect')) {
                     throw new Exception('Wolvox bağlantı hatası: Firebird eklentisi yüklü değil. Lütfen php_interbase.dll dosyasını PHP kurulumunuza ekleyin.');
                 }
 
-                // DSN formatı: firebird:dbname=hostname/port:database;charset=UTF8
-                $dsn = sprintf(
-                    'firebird:dbname=%s/%s:%s;charset=%s',
-                    FB_HOST,
-                    FB_PORT,
-                    str_replace('\\', '/', FB_DATABASE),  // Ters slashları düz slasha çevir
-                    FB_CHARSET
+                // Firebird bağlantı bilgileri
+                $host = FB_HOST;
+                $port = FB_PORT;
+                $database = str_replace('\\', '/', FB_DATABASE);
+                $username = FB_USERNAME;
+                $password = FB_PASSWORD;
+                $charset = FB_CHARSET;
+
+                // Bağlantı dizesi oluştur
+                $connection_string = $host . '/' . $port . ':' . $database;
+
+                // Firebird'e bağlan
+                $db = ibase_connect(
+                    $connection_string,
+                    $username,
+                    $password,
+                    $charset
                 );
 
-                $options = [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                    PDO::ATTR_STRINGIFY_FETCHES => false,
-                    PDO::ATTR_CASE => PDO::CASE_NATURAL
-                ];
+                if (!$db) {
+                    throw new Exception('Wolvox bağlantı hatası: ' . ibase_errmsg());
+                }
 
-                $pdo = new PDO($dsn, FB_USERNAME, FB_PASSWORD, $options);
+                // Transaction başlat
+                $transaction = ibase_trans($db);
                 
-            } catch (PDOException $e) {
+                if (!$transaction) {
+                    throw new Exception('Wolvox transaction hatası: ' . ibase_errmsg());
+                }
+
+            } catch (Exception $e) {
                 error_log("Veritabanı bağlantı hatası: " . $e->getMessage());
                 throw new Exception("Veritabanına bağlanılamadı: " . $e->getMessage());
             }
         }
         
-        return $pdo;
+        return [$db, $transaction];
     }
 }
