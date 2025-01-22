@@ -1,3 +1,5 @@
+import os
+
 def test_example():
     assert True
 
@@ -6,11 +8,12 @@ def test_app_config():
     try:
         from app import app
         assert app.config['DEBUG'] is not None
-        assert app.static_folder == 'static'
-        assert app.template_folder == 'templates'
+        expected_static_folder = os.path.join(os.getcwd(), 'static')
+        expected_template_folder = os.path.join(os.getcwd(), 'templates')
+        assert os.path.normpath(app.static_folder) == os.path.normpath(expected_static_folder)
+        assert os.path.normpath(app.template_folder) == os.path.normpath(expected_template_folder)
     except ImportError:
-        # If app import fails, at least one test should pass
-        assert True
+        assert False, "Failed to import app module"
 
 def test_environment():
     """Test Python environment and basic imports"""
