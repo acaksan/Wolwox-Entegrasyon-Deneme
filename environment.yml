@@ -1,16 +1,14 @@
-name: wolwox-environment
+name: my-environment
 channels:
   - defaults
   - conda-forge
 dependencies:
   - python=3.10
+  - numpy
+  - pandas
   - flask
   - requests
   - python-dotenv
-  - pytest
-  - black
-  - flake8
   - pip
   - pip:
     - woocommerce
-    - fdb
