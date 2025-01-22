@@ -43,5 +43,24 @@ jobs:
       run: |
         pytest -v
 
+    - name: Configure Git
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: Pull latest changes
+      run: |
+        git pull origin main --rebase
+
+    - name: Push changes if needed
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+          git add .
+          git commit -m "Automated updates from tests"
+          git push origin main
+        else
+          echo "No changes to commit"
+        fi
+
     - name: Deploy code
       run: echo "Deploying code..."
