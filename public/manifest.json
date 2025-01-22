@@ -1,0 +1,8 @@
+{
+  "short_name": "Wolvox Entegrasyon",
+  "name": "Wolvox Entegrasyon Yönetim Paneli",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#2c3e50",
+  "background_color": "#ffffff"
+} 
