@@ -8,10 +8,9 @@ def test_app_config():
     try:
         from app import app
         assert app.config['DEBUG'] is not None
-        expected_static_folder = os.path.join(os.getcwd(), 'static')
-        expected_template_folder = os.path.join(os.getcwd(), 'templates')
-        assert os.path.normpath(app.static_folder) == os.path.normpath(expected_static_folder)
-        assert os.path.normpath(app.template_folder) == os.path.normpath(expected_template_folder)
+        # Flask uygulamasında doğrudan string olarak verilmiş
+        assert app.static_folder == 'static'
+        assert app.template_folder == 'templates'
     except ImportError:
         assert False, "Failed to import app module"
 
