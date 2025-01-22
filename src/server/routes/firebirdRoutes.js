@@ -2,6 +2,29 @@ const express = require('express');
 const router = express.Router();
 const firebirdController = require('../controllers/firebirdController');
 
+// Mevcut ayarları getir
+router.get('/settings', async (req, res) => {
+    try {
+        // .env dosyasından ayarları oku
+        const settings = {
+            host: process.env.FIREBIRD_HOST || 'localhost',
+            port: process.env.FIREBIRD_PORT || '3050',
+            database: process.env.FIREBIRD_DATABASE || '',
+            username: process.env.FIREBIRD_USER || 'SYSDBA',
+            password: process.env.FIREBIRD_PASSWORD || 'masterkey',
+            charset: process.env.FIREBIRD_CHARSET || 'WIN1254'
+        };
+        
+        res.json(settings);
+    } catch (error) {
+        console.error('Ayarlar getirilirken hata:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ayarlar getirilemedi'
+        });
+    }
+});
+
 // Bağlantı ayarlarını kaydet
 router.post('/settings', async (req, res) => {
     try {

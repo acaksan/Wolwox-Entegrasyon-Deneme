@@ -22,12 +22,27 @@ const WolvoxConnection = () => {
     const loadSettings = async () => {
       try {
         const response = await fetch('/api/firebird/settings');
+        
+        // Content-Type kontrolü
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Sunucudan geçersiz yanıt alındı');
+        }
+
         if (response.ok) {
           const data = await response.json();
           setSettings(data);
+        } else {
+          throw new Error('Ayarlar yüklenemedi');
         }
       } catch (error) {
         console.error('Ayarlar yüklenirken hata:', error);
+        setStatus({
+          loading: false,
+          success: false,
+          error: true,
+          message: error.message
+        });
       }
     };
     loadSettings();
@@ -51,6 +66,12 @@ const WolvoxConnection = () => {
         },
         body: JSON.stringify(settings)
       });
+
+      // Content-Type kontrolü
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
 
       const data = await response.json();
       
@@ -84,6 +105,13 @@ const WolvoxConnection = () => {
         },
         body: JSON.stringify(settings)
       });
+
+      // Content-Type kontrolü
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Sunucudan geçersiz yanıt alındı');
+      }
+
       const data = await response.json();
       
       if (response.ok && data.success) {

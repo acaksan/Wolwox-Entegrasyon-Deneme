@@ -9,7 +9,7 @@ const wooCommerceRoutes = require('./routes/wooCommerceRoutes');
 const productRoutes = require('./routes/productRoutes');
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3002;
 
 // Güvenlik middleware'leri
 app.use(helmet());
@@ -22,19 +22,16 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // CORS ayarları
-const corsOptions = {
-    origin: process.env.NODE_ENV === 'production' 
-        ? process.env.ALLOWED_ORIGINS?.split(',') 
-        : ['http://localhost:3000', 'http://localhost:3001'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-};
-app.use(cors(corsOptions));
+app.use(cors());
 
-// Body parser middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// JSON middleware
+app.use(express.json());
+
+// Content-Type ayarı
+app.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+});
 
 // Static dosyalar için klasör tanımla
 app.use(express.static(path.join(__dirname, '../../build')));
