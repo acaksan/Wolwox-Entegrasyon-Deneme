@@ -2,23 +2,24 @@ const express = require('express');
 const router = express.Router();
 const wooCommerceController = require('../controllers/wooCommerceController');
 
-// WooCommerce ayarlarını kaydet
-router.post('/settings/save', async (req, res) => {
-    try {
-        const result = await wooCommerceController.saveSettings(req.body);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
+// WooCommerce bağlantı ayarlarını kaydet
+router.post('/settings/save', wooCommerceController.saveSettings);
 
 // WooCommerce bağlantısını test et
-router.post('/settings/test', async (req, res) => {
+router.get('/settings/test', wooCommerceController.testConnection);
+
+// Fiyatları güncelle
+router.post('/prices/update', async (req, res) => {
     try {
-        const result = await wooCommerceController.testConnection();
+        const result = await wooCommerceController.updateProductPrices();
         res.json(result);
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Fiyat güncelleme hatası:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Fiyat güncelleme işlemi başarısız',
+            error: error.message
+        });
     }
 });
 

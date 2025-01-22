@@ -1,24 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
   CardContent,
   TextField,
   Button,
-  Typography,
   Alert,
-  Grid
+  Grid,
+  Typography
 } from '@mui/material';
 
-function WooCommerceSettings() {
+const WooCommerceSettings = () => {
   const [settings, setSettings] = useState({
-    siteUrl: '',
-    consumerKey: '',
-    consumerSecret: '',
-    version: 'wc/v3'
+    url: '',
+    key: '',
+    secret: ''
   });
 
-  const [testResult, setTestResult] = useState(null);
+  const [status, setStatus] = useState({
+    loading: false,
+    success: false,
+    error: null,
+    message: ''
+  });
+
+  // Mevcut ayarları yükle
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/woocommerce/settings/current');
+        if (response.ok) {
+          const data = await response.json();
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error('Ayarlar yüklenirken hata:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,151 +48,138 @@ function WooCommerceSettings() {
     }));
   };
 
-  const handleTestConnection = async () => {
+  const handleSave = async () => {
+    setStatus({ loading: true, success: false, error: null, message: '' });
     try {
-      const response = await fetch('/api/woocommerce/test-connection', {
+      const response = await fetch('/api/woocommerce/settings/save', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(settings)
       });
 
       const data = await response.json();
-
+      
       if (response.ok) {
-        setTestResult({
+        setStatus({
+          loading: false,
           success: true,
-          message: 'Bağlantı başarılı!'
+          error: null,
+          message: 'Ayarlar başarıyla kaydedildi'
         });
       } else {
-        setTestResult({
-          success: false,
-          message: data.message || 'Bağlantı hatası!'
-        });
+        throw new Error(data.error || 'Ayarlar kaydedilemedi');
       }
     } catch (error) {
-      setTestResult({
+      setStatus({
+        loading: false,
         success: false,
-        message: 'Bağlantı testi sırasında bir hata oluştu.'
+        error: true,
+        message: error.message
       });
     }
   };
 
-  const handleSave = async () => {
+  const handleTest = async () => {
+    setStatus({ loading: true, success: false, error: null, message: '' });
     try {
-      const response = await fetch('/api/woocommerce/save-settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
-      });
-
+      const response = await fetch('/api/woocommerce/settings/test');
       const data = await response.json();
-
-      if (response.ok) {
-        setTestResult({
+      
+      if (response.ok && data.success) {
+        setStatus({
+          loading: false,
           success: true,
-          message: 'Ayarlar başarıyla kaydedildi!'
+          error: null,
+          message: 'Bağlantı testi başarılı'
         });
       } else {
-        setTestResult({
-          success: false,
-          message: data.message || 'Ayarlar kaydedilirken bir hata oluştu!'
-        });
+        throw new Error(data.error || 'Bağlantı testi başarısız');
       }
     } catch (error) {
-      setTestResult({
+      setStatus({
+        loading: false,
         success: false,
-        message: 'Ayarlar kaydedilirken bir hata oluştu.'
+        error: true,
+        message: error.message
       });
     }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
+      <Typography variant="h5" gutterBottom>
+        WooCommerce Bağlantı Ayarları
+      </Typography>
+      
       <Card>
         <CardContent>
-          <Typography variant="h5" gutterBottom>
-            WooCommerce API Ayarları
-          </Typography>
-
-          <Grid container spacing={2} sx={{ mt: 2 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Site URL"
-                name="siteUrl"
-                value={settings.siteUrl}
+                name="url"
+                value={settings.url}
                 onChange={handleChange}
-                margin="normal"
                 helperText="Örnek: https://www.siteniz.com"
               />
             </Grid>
+            
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Consumer Key"
-                name="consumerKey"
-                value={settings.consumerKey}
+                name="key"
+                value={settings.key}
                 onChange={handleChange}
-                margin="normal"
               />
             </Grid>
+            
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Consumer Secret"
-                name="consumerSecret"
+                name="secret"
+                value={settings.secret}
+                onChange={handleChange}
                 type="password"
-                value={settings.consumerSecret}
-                onChange={handleChange}
-                margin="normal"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="API Versiyonu"
-                name="version"
-                value={settings.version}
-                onChange={handleChange}
-                margin="normal"
-                disabled
-              />
+
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={handleSave}
+                  disabled={status.loading}
+                >
+                  {status.loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  onClick={handleTest}
+                  disabled={status.loading}
+                >
+                  {status.loading ? 'Test Ediliyor...' : 'Bağlantıyı Test Et'}
+                </Button>
+              </Box>
             </Grid>
+
+            {(status.success || status.error) && (
+              <Grid item xs={12}>
+                <Alert severity={status.error ? 'error' : 'success'}>
+                  {status.message}
+                </Alert>
+              </Grid>
+            )}
           </Grid>
-
-          {testResult && (
-            <Alert 
-              severity={testResult.success ? "success" : "error"}
-              sx={{ mt: 2 }}
-            >
-              {testResult.message}
-            </Alert>
-          )}
-
-          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleTestConnection}
-            >
-              Bağlantıyı Test Et
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={handleSave}
-            >
-              Ayarları Kaydet
-            </Button>
-          </Box>
         </CardContent>
       </Card>
     </Box>
   );
-}
+};
 
 export default WooCommerceSettings; 

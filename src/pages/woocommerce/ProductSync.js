@@ -7,24 +7,21 @@ import {
   Typography,
   Alert,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
   FormControlLabel,
   Checkbox,
+  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem
 } from '@mui/material';
 
-function ProductSync() {
+const ProductSync = () => {
   const [syncStatus, setSyncStatus] = useState({
     isRunning: false,
     progress: 0,
     message: '',
-    logs: []
+    success: null
   });
 
   const [syncOptions, setSyncOptions] = useState({
@@ -32,16 +29,22 @@ function ProductSync() {
     syncCategories: true,
     syncAttributes: true,
     syncVariations: true,
-    productStatus: 'publish',
-    updateExisting: true
+    updateExisting: true,
+    productStatus: 'publish'
   });
 
   const handleOptionChange = (event) => {
-    const { name, checked, value } = event.target;
-    setSyncOptions(prev => ({
-      ...prev,
-      [name]: event.target.type === 'checkbox' ? checked : value
-    }));
+    setSyncOptions({
+      ...syncOptions,
+      [event.target.name]: event.target.checked
+    });
+  };
+
+  const handleStatusChange = (event) => {
+    setSyncOptions({
+      ...syncOptions,
+      productStatus: event.target.value
+    });
   };
 
   const handleStartSync = async () => {
@@ -49,12 +52,11 @@ function ProductSync() {
       setSyncStatus({
         isRunning: true,
         progress: 0,
-        message: 'WooCommerce ürün senkronizasyonu başlatılıyor...',
-        logs: []
+        message: 'Ürün senkronizasyonu başlatılıyor...',
+        success: null
       });
 
-      // API'ye senkronizasyon başlatma isteği gönder
-      const response = await fetch('/api/woocommerce/sync-products', {
+      const response = await fetch('/api/woocommerce/products/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -62,153 +64,141 @@ function ProductSync() {
         body: JSON.stringify(syncOptions)
       });
 
-      if (!response.ok) {
-        throw new Error('Senkronizasyon başlatılamadı');
-      }
+      const result = await response.json();
 
-      // Başarılı yanıt durumunda
-      setSyncStatus(prev => ({
-        ...prev,
-        message: 'Ürün senkronizasyonu başarıyla tamamlandı',
+      setSyncStatus({
         isRunning: false,
         progress: 100,
-        logs: [...prev.logs, 'Senkronizasyon tamamlandı']
-      }));
-
+        message: result.message,
+        success: result.success
+      });
     } catch (error) {
-      setSyncStatus(prev => ({
-        ...prev,
+      setSyncStatus({
         isRunning: false,
-        message: `Hata: ${error.message}`,
-        logs: [...prev.logs, `Hata: ${error.message}`]
-      }));
+        progress: 0,
+        message: 'Senkronizasyon sırasında hata oluştu: ' + error.message,
+        success: false
+      });
     }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
       <Card>
         <CardContent>
           <Typography variant="h5" gutterBottom>
-            WooCommerce Ürün Senkronizasyonu
+            WooCommerce Ürün Aktarımı
           </Typography>
 
-          <Box sx={{ my: 3 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={syncOptions.syncImages}
-                  onChange={handleOptionChange}
-                  name="syncImages"
-                />
-              }
-              label="Ürün Görsellerini Senkronize Et"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={syncOptions.syncCategories}
-                  onChange={handleOptionChange}
-                  name="syncCategories"
-                />
-              }
-              label="Kategorileri Senkronize Et"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={syncOptions.syncAttributes}
-                  onChange={handleOptionChange}
-                  name="syncAttributes"
-                />
-              }
-              label="Özellikleri Senkronize Et"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={syncOptions.syncVariations}
-                  onChange={handleOptionChange}
-                  name="syncVariations"
-                />
-              }
-              label="Varyasyonları Senkronize Et"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={syncOptions.updateExisting}
-                  onChange={handleOptionChange}
-                  name="updateExisting"
-                />
-              }
-              label="Mevcut Ürünleri Güncelle"
-            />
-          </Box>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={syncOptions.syncImages}
+                    onChange={handleOptionChange}
+                    name="syncImages"
+                  />
+                }
+                label="Ürün Görsellerini Aktar"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={syncOptions.syncCategories}
+                    onChange={handleOptionChange}
+                    name="syncCategories"
+                  />
+                }
+                label="Kategorileri Aktar"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={syncOptions.syncAttributes}
+                    onChange={handleOptionChange}
+                    name="syncAttributes"
+                  />
+                }
+                label="Özellikleri Aktar"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={syncOptions.syncVariations}
+                    onChange={handleOptionChange}
+                    name="syncVariations"
+                  />
+                }
+                label="Varyasyonları Aktar"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={syncOptions.updateExisting}
+                    onChange={handleOptionChange}
+                    name="updateExisting"
+                  />
+                }
+                label="Mevcut Ürünleri Güncelle"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Ürün Durumu</InputLabel>
+                <Select
+                  value={syncOptions.productStatus}
+                  onChange={handleStatusChange}
+                  label="Ürün Durumu"
+                >
+                  <MenuItem value="publish">Yayında</MenuItem>
+                  <MenuItem value="draft">Taslak</MenuItem>
+                  <MenuItem value="private">Özel</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
 
-          <Box sx={{ my: 3 }}>
-            <FormControl fullWidth>
-              <InputLabel>Ürün Durumu</InputLabel>
-              <Select
-                value={syncOptions.productStatus}
-                onChange={handleOptionChange}
-                name="productStatus"
-                label="Ürün Durumu"
-              >
-                <MenuItem value="publish">Yayında</MenuItem>
-                <MenuItem value="draft">Taslak</MenuItem>
-                <MenuItem value="private">Gizli</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-
-          <Box sx={{ my: 3 }}>
+          <Box sx={{ mt: 3 }}>
             <Button
               variant="contained"
               color="primary"
               onClick={handleStartSync}
               disabled={syncStatus.isRunning}
             >
-              Ürün Senkronizasyonunu Başlat
+              {syncStatus.isRunning ? 'Aktarım Devam Ediyor...' : 'Aktarımı Başlat'}
             </Button>
           </Box>
 
           {syncStatus.isRunning && (
-            <Box sx={{ width: '100%', mb: 2 }}>
+            <Box sx={{ mt: 2 }}>
               <LinearProgress variant="determinate" value={syncStatus.progress} />
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {syncStatus.message}
+              </Typography>
             </Box>
           )}
 
-          {syncStatus.message && (
+          {syncStatus.success !== null && !syncStatus.isRunning && (
             <Alert 
-              severity={syncStatus.message.includes('Hata') ? 'error' : 'success'}
-              sx={{ mb: 2 }}
+              severity={syncStatus.success ? "success" : "error"}
+              sx={{ mt: 2 }}
             >
               {syncStatus.message}
             </Alert>
-          )}
-
-          {syncStatus.logs.length > 0 && (
-            <>
-              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                İşlem Kayıtları
-              </Typography>
-              <List>
-                {syncStatus.logs.map((log, index) => (
-                  <React.Fragment key={index}>
-                    <ListItem>
-                      <ListItemText primary={log} />
-                    </ListItem>
-                    {index < syncStatus.logs.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
-            </>
           )}
         </CardContent>
       </Card>
     </Box>
   );
-}
+};
 
 export default ProductSync; 

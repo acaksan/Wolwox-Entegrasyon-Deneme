@@ -92,13 +92,33 @@ router.get('/stoklar', async (req, res) => {
     }
 });
 
-// Ürün stok miktarını getir
-router.get('/products/:stokKodu/stock', async (req, res) => {
+// Tek ürünün stok miktarını getir
+router.get('/stock/:stokKodu', async (req, res) => {
     try {
         const result = await firebirdController.getProductStock(req.params.stokKodu);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Stok miktarı getirme hatası:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Stok miktarı getirilemedi',
+            error: error.message
+        });
+    }
+});
+
+// Tüm ürünlerin stok miktarlarını getir
+router.get('/stock', async (req, res) => {
+    try {
+        const result = await firebirdController.getAllProductsStock();
+        res.json(result);
+    } catch (error) {
+        console.error('Stok miktarları getirme hatası:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Stok miktarları getirilemedi',
+            error: error.message
+        });
     }
 });
 
@@ -109,6 +129,21 @@ router.get('/products/:stokKodu/images', async (req, res) => {
         res.json(result);
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Fiyat bilgilerini getir
+router.get('/prices', async (req, res) => {
+    try {
+        const result = await firebirdController.getProductPrices();
+        res.json(result);
+    } catch (error) {
+        console.error('Fiyat bilgileri getirilemedi:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Fiyat bilgileri getirilemedi',
+            error: error.message
+        });
     }
 });
 

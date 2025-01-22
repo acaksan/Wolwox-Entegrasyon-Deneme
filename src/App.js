@@ -1,12 +1,13 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import MainLayout from './components/MainLayout';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout';
 
 // Akınsoft Wolvox Entegrasyon Sayfaları
 import WolvoxConnection from './pages/wolvox/WolvoxConnection';
 import ProductSync from './pages/wolvox/ProductSync';
 import StockSync from './pages/wolvox/StockSync';
 import OrderSync from './pages/wolvox/OrderSync';
+import ProductComparison from './pages/wolvox/ProductComparison';
 
 // WooCommerce Entegrasyon Sayfaları
 import WooCommerceSettings from './pages/woocommerce/WooCommerceSettings';
@@ -21,31 +22,30 @@ import SystemLogs from './pages/settings/SystemLogs';
 
 import './App.css';
 
-function App() {
+const App = () => {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<MainLayout />}>
-          {/* Wolvox2 Rotaları */}
+          {/* Akınsoft Wolvox Rotaları */}
           <Route path="/wolvox/connection" element={<WolvoxConnection />} />
           <Route path="/wolvox/products" element={<ProductSync />} />
           <Route path="/wolvox/stock" element={<StockSync />} />
           <Route path="/wolvox/orders" element={<OrderSync />} />
-
+          <Route path="/wolvox/comparison" element={<ProductComparison />} />
+          
           {/* WooCommerce Rotaları */}
           <Route path="/woocommerce/settings" element={<WooCommerceSettings />} />
           <Route path="/woocommerce/products" element={<WooProductSync />} />
           <Route path="/woocommerce/stock" element={<WooStockSync />} />
           <Route path="/woocommerce/orders" element={<WooOrderSync />} />
-
-          {/* Ayarlar Rotaları */}
-          <Route path="/settings/general" element={<GeneralSettings />} />
-          <Route path="/settings/api" element={<ApiSettings />} />
-          <Route path="/settings/logs" element={<SystemLogs />} />
+          
+          {/* Ana sayfa için varsayılan rota */}
+          <Route index element={<WolvoxConnection />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
-}
+};
 
 export default App; 

@@ -1,200 +1,223 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
   CardContent,
   TextField,
   Button,
-  Typography,
   Alert,
-  Grid
+  Grid,
+  Typography
 } from '@mui/material';
 
-function WolvoxConnection() {
-  const [connectionSettings, setConnectionSettings] = useState({
+const WolvoxConnection = () => {
+  const [settings, setSettings] = useState({
     host: 'localhost',
     port: '3050',
     database: '',
     username: 'SYSDBA',
     password: 'masterkey',
-    charset: 'UTF8'
+    charset: 'WIN1254'
   });
 
-  const [testResult, setTestResult] = useState(null);
+  const [status, setStatus] = useState({
+    loading: false,
+    success: false,
+    error: null,
+    message: ''
+  });
+
+  // Mevcut ayarları yükle
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/firebird/connection/current');
+        if (response.ok) {
+          const data = await response.json();
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error('Ayarlar yüklenirken hata:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setConnectionSettings(prev => ({
+    setSettings(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleTestConnection = async () => {
+  const handleSave = async () => {
+    setStatus({ loading: true, success: false, error: null, message: '' });
     try {
-      // API'ye bağlantı test isteği gönder
-      const response = await fetch('/api/wolvox/test-connection', {
+      const response = await fetch('/api/firebird/connection/save', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(connectionSettings),
+        body: JSON.stringify(settings)
       });
 
       const data = await response.json();
-
+      
       if (response.ok) {
-        setTestResult({
+        setStatus({
+          loading: false,
           success: true,
-          message: 'Bağlantı başarılı!'
+          error: null,
+          message: 'Ayarlar başarıyla kaydedildi'
         });
       } else {
-        setTestResult({
-          success: false,
-          message: data.message || 'Bağlantı hatası!'
-        });
+        throw new Error(data.error || 'Ayarlar kaydedilemedi');
       }
     } catch (error) {
-      setTestResult({
+      setStatus({
+        loading: false,
         success: false,
-        message: 'Bağlantı testi sırasında bir hata oluştu.'
+        error: true,
+        message: error.message
       });
     }
   };
 
-  const handleSave = async () => {
+  const handleTest = async () => {
+    setStatus({ loading: true, success: false, error: null, message: '' });
     try {
-      const response = await fetch('/api/wolvox/save-connection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(connectionSettings),
-      });
-
+      const response = await fetch('/api/firebird/connection/test');
       const data = await response.json();
-
-      if (response.ok) {
-        setTestResult({
+      
+      if (response.ok && data.success) {
+        setStatus({
+          loading: false,
           success: true,
-          message: 'Ayarlar başarıyla kaydedildi!'
+          error: null,
+          message: 'Bağlantı testi başarılı'
         });
       } else {
-        setTestResult({
-          success: false,
-          message: data.message || 'Ayarlar kaydedilirken bir hata oluştu!'
-        });
+        throw new Error(data.error || 'Bağlantı testi başarısız');
       }
     } catch (error) {
-      setTestResult({
+      setStatus({
+        loading: false,
         success: false,
-        message: 'Ayarlar kaydedilirken bir hata oluştu.'
+        error: true,
+        message: error.message
       });
     }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
+      <Typography variant="h5" gutterBottom>
+        Akınsoft Wolvox Bağlantı Ayarları
+      </Typography>
+      
       <Card>
         <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Akınsoft Wolvox Firebird Bağlantı Ayarları
-          </Typography>
-
-          <Grid container spacing={2} sx={{ mt: 2 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Sunucu Adresi"
+                label="Sunucu"
                 name="host"
-                value={connectionSettings.host}
+                value={settings.host}
                 onChange={handleChange}
-                margin="normal"
+                helperText="Örnek: localhost veya IP adresi"
               />
             </Grid>
+            
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Port"
                 name="port"
-                value={connectionSettings.port}
+                value={settings.port}
                 onChange={handleChange}
-                margin="normal"
+                helperText="Varsayılan: 3050"
               />
             </Grid>
+            
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Veritabanı Yolu"
                 name="database"
-                value={connectionSettings.database}
+                value={settings.database}
                 onChange={handleChange}
-                margin="normal"
-                helperText="Örnek: C:\Program Files\Wolvox2\Database\WOLVOX.FDB"
+                helperText="Örnek: D:\AKINSOFT\Wolvox8\Database_FB\WOLVOX.FDB"
               />
             </Grid>
+            
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Kullanıcı Adı"
                 name="username"
-                value={connectionSettings.username}
+                value={settings.username}
                 onChange={handleChange}
-                margin="normal"
+                helperText="Varsayılan: SYSDBA"
               />
             </Grid>
+            
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Şifre"
                 name="password"
-                type="password"
-                value={connectionSettings.password}
+                value={settings.password}
                 onChange={handleChange}
-                margin="normal"
+                type="password"
+                helperText="Varsayılan: masterkey"
               />
             </Grid>
+
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Karakter Seti"
                 name="charset"
-                value={connectionSettings.charset}
+                value={settings.charset}
                 onChange={handleChange}
-                margin="normal"
+                helperText="Varsayılan: WIN1254"
               />
             </Grid>
+
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={handleSave}
+                  disabled={status.loading}
+                >
+                  {status.loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  onClick={handleTest}
+                  disabled={status.loading}
+                >
+                  {status.loading ? 'Test Ediliyor...' : 'Bağlantıyı Test Et'}
+                </Button>
+              </Box>
+            </Grid>
+
+            {(status.success || status.error) && (
+              <Grid item xs={12}>
+                <Alert severity={status.error ? 'error' : 'success'}>
+                  {status.message}
+                </Alert>
+              </Grid>
+            )}
           </Grid>
-
-          {testResult && (
-            <Alert 
-              severity={testResult.success ? "success" : "error"}
-              sx={{ mt: 2 }}
-            >
-              {testResult.message}
-            </Alert>
-          )}
-
-          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleTestConnection}
-            >
-              Bağlantıyı Test Et
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={handleSave}
-            >
-              Ayarları Kaydet
-            </Button>
-          </Box>
         </CardContent>
       </Card>
     </Box>
   );
-}
+};
 
 export default WolvoxConnection; 

@@ -1,21 +1,23 @@
 const Firebird = require('node-firebird');
+require('dotenv').config();
 
 const defaultOptions = {
-    host: 'localhost',
-    port: 3050,
-    database: 'D:\\AKINSOFT\\Wolvox8\\Database_FB\\DEMOWOLVOX\\2025\\WOLVOX.FDB', // Demo veritabanı yolu
-    user: 'SYSDBA',
-    password: 'masterkey',
+    host: process.env.FIREBIRD_HOST || 'localhost',
+    port: parseInt(process.env.FIREBIRD_PORT) || 3050,
+    database: process.env.FIREBIRD_DATABASE,
+    user: process.env.FIREBIRD_USER || 'SYSDBA',
+    password: process.env.FIREBIRD_PASSWORD || 'masterkey',
     lowercase_keys: false,
     role: null,
-    pageSize: 4096,
-    retryConnectionInterval: 1000,
-    charset: 'WIN1254', // Türkçe karakter desteği için
-    fbClientLibrary: 'C:\\Program Files (x86)\\Firebird\\Firebird_2_5\\bin\\fbclient.dll' // 32 bit Firebird client
+    pageSize: parseInt(process.env.FIREBIRD_PAGE_SIZE) || 4096,
+    retryConnectionInterval: parseInt(process.env.FIREBIRD_RETRY_INTERVAL) || 1000,
+    charset: process.env.FIREBIRD_CHARSET || 'WIN1254',
+    fbClientLibrary: process.env.FIREBIRD_CLIENT_LIBRARY
 };
 
 // Bağlantı havuzu oluştur
-const pool = Firebird.pool(5, defaultOptions); // 5 eşzamanlı bağlantı
+const poolSize = parseInt(process.env.FIREBIRD_POOL_SIZE) || 5;
+const pool = Firebird.pool(poolSize, defaultOptions);
 
 // Bağlantı al
 function getConnection() {
@@ -93,10 +95,23 @@ function closePool() {
     });
 }
 
+// Bağlantı durumunu kontrol et
+async function checkConnection() {
+    try {
+        const connection = await getConnection();
+        connection.detach();
+        return true;
+    } catch (error) {
+        console.error('Bağlantı kontrol hatası:', error);
+        return false;
+    }
+}
+
 module.exports = {
     getConnection,
     query,
     testConnection,
     closePool,
+    checkConnection,
     options: defaultOptions
 }; 

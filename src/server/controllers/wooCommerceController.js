@@ -1,52 +1,191 @@
-const WooCommerceRestApi = require('@woocommerce/woocommerce-rest-api').default;
+const WooCommerceAPI = require('@woocommerce/woocommerce-rest-api').default;
+const firebirdController = require('./firebirdController');
+require('dotenv').config();
 
 let wooCommerce = null;
 
 // WooCommerce API yapılandırması
-function initializeWooCommerce(settings) {
-    wooCommerce = new WooCommerceRestApi({
-        url: settings.siteUrl,
-        consumerKey: settings.consumerKey,
-        consumerSecret: settings.consumerSecret,
-        version: settings.apiVersion || 'wc/v3'
-    });
-    return wooCommerce;
+const initializeWooCommerce = (settings) => {
+    try {
+        const config = {
+            url: settings?.url || process.env.WOOCOMMERCE_URL,
+            consumerKey: settings?.key || process.env.WOOCOMMERCE_KEY,
+            consumerSecret: settings?.secret || process.env.WOOCOMMERCE_SECRET,
+            version: 'wc/v3',
+            queryStringAuth: true,
+            timeout: 10000 // 10 saniye timeout
+        };
+
+        // Gerekli alanları kontrol et
+        if (!config.url || !config.consumerKey || !config.consumerSecret) {
+            throw new Error('WooCommerce yapılandırma bilgileri eksik');
+        }
+
+        return new WooCommerceAPI(config);
+    } catch (error) {
+        console.error('WooCommerce başlatma hatası:', error);
+        throw error;
+    }
+};
+
+// Bağlantı durumunu kontrol et
+const checkConnection = async () => {
+    try {
+        if (!wooCommerce) {
+            wooCommerce = initializeWooCommerce();
+        }
+        const response = await wooCommerce.get('system_status');
+        return { success: true, status: response.status };
+    } catch (error) {
+        console.error('WooCommerce bağlantı kontrolü hatası:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Fiyat güncelleme fonksiyonu
+async function updateProductPrices() {
+    try {
+        if (!wooCommerce) {
+            throw new Error('WooCommerce bağlantısı başlatılmamış');
+        }
+
+        // Firebird'den fiyatları al
+        const firebirdPrices = await firebirdController.getProductPrices();
+        if (!firebirdPrices.success) {
+            throw new Error('Firebird\'den fiyatlar alınamadı');
+        }
+
+        const updateResults = [];
+        
+        // Her ürün için WooCommerce'de güncelleme yap
+        for (const product of firebirdPrices.data) {
+            try {
+                // Önce ürünü SKU'ya göre bul
+                const searchResponse = await wooCommerce.get('products', {
+                    sku: product.barkod
+                });
+
+                if (searchResponse.data && searchResponse.data.length > 0) {
+                    const wooProduct = searchResponse.data[0];
+                    
+                    // Fiyatı güncelle
+                    const updateResponse = await wooCommerce.put(`products/${wooProduct.id}`, {
+                        regular_price: product.satisFiyati.toString(),
+                        stock_quantity: null // Stok miktarını ayrı bir fonksiyonda güncelleyeceğiz
+                    });
+
+                    updateResults.push({
+                        stokKodu: product.stokKodu,
+                        barkod: product.barkod,
+                        success: true,
+                        message: 'Fiyat güncellendi',
+                        oldPrice: wooProduct.regular_price,
+                        newPrice: product.satisFiyati
+                    });
+                } else {
+                    updateResults.push({
+                        stokKodu: product.stokKodu,
+                        barkod: product.barkod,
+                        success: false,
+                        message: 'Ürün WooCommerce\'de bulunamadı'
+                    });
+                }
+            } catch (error) {
+                updateResults.push({
+                    stokKodu: product.stokKodu,
+                    barkod: product.barkod,
+                    success: false,
+                    message: `Güncelleme hatası: ${error.message}`
+                });
+            }
+        }
+
+        return {
+            success: true,
+            message: 'Fiyat güncelleme işlemi tamamlandı',
+            data: updateResults
+        };
+
+    } catch (error) {
+        console.error('Fiyat güncelleme hatası:', error);
+        return {
+            success: false,
+            message: 'Fiyat güncelleme işlemi başarısız',
+            error: error.message
+        };
+    }
 }
 
 // Bağlantı ayarlarını kaydet ve test et
-async function saveSettings(settings) {
+const saveSettings = async (req, res) => {
     try {
-        // Ayarları kaydet (örneğin veritabanına veya .env dosyasına)
-        process.env.WC_URL = settings.siteUrl;
-        process.env.WC_KEY = settings.consumerKey;
-        process.env.WC_SECRET = settings.consumerSecret;
-        process.env.WC_VERSION = settings.apiVersion;
-
-        // WooCommerce bağlantısını başlat
-        initializeWooCommerce(settings);
+        const { url, key, secret } = req.body;
         
-        return { success: true, message: 'WooCommerce ayarları başarıyla kaydedildi.' };
-    } catch (error) {
-        console.error('WooCommerce ayarları kaydedilirken hata:', error);
-        throw new Error('WooCommerce ayarları kaydedilemedi.');
-    }
-}
-
-// Bağlantıyı test et
-async function testConnection() {
-    try {
-        if (!wooCommerce) {
-            throw new Error('WooCommerce bağlantısı yapılandırılmamış.');
+        // Gerekli alanları kontrol et
+        if (!url || !key || !secret) {
+            return res.status(400).json({
+                success: false,
+                message: 'Tüm alanlar zorunludur'
+            });
         }
 
-        // Basit bir API çağrısı yap
-        const response = await wooCommerce.get('system_status');
-        return { success: true, message: 'WooCommerce bağlantısı başarılı.' };
+        // Test bağlantısı
+        wooCommerce = initializeWooCommerce({ url, key, secret });
+        const testResult = await checkConnection();
+        
+        if (!testResult.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Bağlantı testi başarısız',
+                error: testResult.error
+            });
+        }
+
+        // Ayarları kaydet
+        process.env.WOOCOMMERCE_URL = url;
+        process.env.WOOCOMMERCE_KEY = key;
+        process.env.WOOCOMMERCE_SECRET = secret;
+
+        res.json({
+            success: true,
+            message: 'WooCommerce ayarları başarıyla kaydedildi'
+        });
+    } catch (error) {
+        console.error('WooCommerce ayarları kaydedilirken hata:', error);
+        res.status(500).json({
+            success: false,
+            message: 'WooCommerce ayarları kaydedilemedi',
+            error: error.message
+        });
+    }
+};
+
+// Bağlantıyı test et
+const testConnection = async (req, res) => {
+    try {
+        const result = await checkConnection();
+        if (!result.success) {
+            return res.status(500).json({
+                success: false,
+                message: 'WooCommerce bağlantısı başarısız',
+                error: result.error
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'WooCommerce bağlantısı başarılı',
+            status: result.status
+        });
     } catch (error) {
         console.error('WooCommerce bağlantı testi hatası:', error);
-        throw new Error('WooCommerce bağlantı testi başarısız oldu.');
+        res.status(500).json({
+            success: false,
+            message: 'WooCommerce bağlantı testi başarısız',
+            error: error.message
+        });
     }
-}
+};
 
 // Ürünleri senkronize et
 async function syncProducts(products) {
@@ -181,5 +320,7 @@ module.exports = {
     testConnection,
     syncProducts,
     syncStock,
-    syncOrders
+    syncOrders,
+    updateProductPrices,
+    checkConnection
 }; 

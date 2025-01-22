@@ -7,49 +7,44 @@ import {
   Typography,
   Alert,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Grid,
   TextField
 } from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import trLocale from 'date-fns/locale/tr';
 
-function OrderSync() {
+const OrderSync = () => {
   const [syncStatus, setSyncStatus] = useState({
     isRunning: false,
     progress: 0,
     message: '',
-    logs: []
+    success: null
   });
 
   const [syncOptions, setSyncOptions] = useState({
-    orderStatus: 'all',
-    dateRange: {
-      startDate: '',
-      endDate: ''
-    }
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)), // Son 30 gün
+    endDate: new Date(),
+    orderStatus: 'all'
   });
 
-  const handleOrderStatusChange = (event) => {
-    setSyncOptions(prev => ({
-      ...prev,
-      orderStatus: event.target.value
-    }));
+  const handleDateChange = (field) => (date) => {
+    setSyncOptions({
+      ...syncOptions,
+      [field]: date
+    });
   };
 
-  const handleDateChange = (event) => {
-    const { name, value } = event.target;
-    setSyncOptions(prev => ({
-      ...prev,
-      dateRange: {
-        ...prev.dateRange,
-        [name]: value
-      }
-    }));
+  const handleStatusChange = (event) => {
+    setSyncOptions({
+      ...syncOptions,
+      orderStatus: event.target.value
+    });
   };
 
   const handleStartSync = async () => {
@@ -58,134 +53,117 @@ function OrderSync() {
         isRunning: true,
         progress: 0,
         message: 'Sipariş senkronizasyonu başlatılıyor...',
-        logs: []
+        success: null
       });
 
-      // API'ye senkronizasyon başlatma isteği gönder
-      const response = await fetch('/api/wolvox/sync-orders', {
+      const response = await fetch('/api/woocommerce/orders/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(syncOptions)
+        body: JSON.stringify({
+          startDate: syncOptions.startDate.toISOString(),
+          endDate: syncOptions.endDate.toISOString(),
+          status: syncOptions.orderStatus
+        })
       });
 
-      if (!response.ok) {
-        throw new Error('Senkronizasyon başlatılamadı');
-      }
+      const result = await response.json();
 
-      // Başarılı yanıt durumunda
-      setSyncStatus(prev => ({
-        ...prev,
-        message: 'Sipariş senkronizasyonu başarıyla tamamlandı',
+      setSyncStatus({
         isRunning: false,
         progress: 100,
-        logs: [...prev.logs, 'Senkronizasyon tamamlandı']
-      }));
-
+        message: result.message,
+        success: result.success
+      });
     } catch (error) {
-      setSyncStatus(prev => ({
-        ...prev,
+      setSyncStatus({
         isRunning: false,
-        message: `Hata: ${error.message}`,
-        logs: [...prev.logs, `Hata: ${error.message}`]
-      }));
+        progress: 0,
+        message: 'Senkronizasyon sırasında hata oluştu: ' + error.message,
+        success: false
+      });
     }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
       <Card>
         <CardContent>
           <Typography variant="h5" gutterBottom>
-            Sipariş Senkronizasyonu
+            WooCommerce Sipariş Senkronizasyonu
           </Typography>
 
-          <Box sx={{ my: 3 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Sipariş Durumu</InputLabel>
-              <Select
-                value={syncOptions.orderStatus}
-                onChange={handleOrderStatusChange}
-                label="Sipariş Durumu"
-              >
-                <MenuItem value="all">Tüm Siparişler</MenuItem>
-                <MenuItem value="pending">Bekleyen Siparişler</MenuItem>
-                <MenuItem value="processing">İşleme Alınan Siparişler</MenuItem>
-                <MenuItem value="completed">Tamamlanan Siparişler</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={trLocale}>
+              <Grid item xs={12} sm={6}>
+                <DatePicker
+                  label="Başlangıç Tarihi"
+                  value={syncOptions.startDate}
+                  onChange={handleDateChange('startDate')}
+                  renderInput={(params) => <TextField {...params} fullWidth />}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <DatePicker
+                  label="Bitiş Tarihi"
+                  value={syncOptions.endDate}
+                  onChange={handleDateChange('endDate')}
+                  renderInput={(params) => <TextField {...params} fullWidth />}
+                />
+              </Grid>
+            </LocalizationProvider>
+            
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Sipariş Durumu</InputLabel>
+                <Select
+                  value={syncOptions.orderStatus}
+                  onChange={handleStatusChange}
+                  label="Sipariş Durumu"
+                >
+                  <MenuItem value="all">Tümü</MenuItem>
+                  <MenuItem value="processing">İşlemde</MenuItem>
+                  <MenuItem value="completed">Tamamlandı</MenuItem>
+                  <MenuItem value="on-hold">Beklemede</MenuItem>
+                  <MenuItem value="cancelled">İptal Edildi</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
 
-            <TextField
-              fullWidth
-              type="date"
-              label="Başlangıç Tarihi"
-              name="startDate"
-              value={syncOptions.dateRange.startDate}
-              onChange={handleDateChange}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              fullWidth
-              type="date"
-              label="Bitiş Tarihi"
-              name="endDate"
-              value={syncOptions.dateRange.endDate}
-              onChange={handleDateChange}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Box>
-
-          <Box sx={{ my: 3 }}>
+          <Box sx={{ mt: 3 }}>
             <Button
               variant="contained"
               color="primary"
               onClick={handleStartSync}
               disabled={syncStatus.isRunning}
             >
-              Sipariş Senkronizasyonunu Başlat
+              {syncStatus.isRunning ? 'Senkronizasyon Devam Ediyor...' : 'Senkronizasyonu Başlat'}
             </Button>
           </Box>
 
           {syncStatus.isRunning && (
-            <Box sx={{ width: '100%', mb: 2 }}>
+            <Box sx={{ mt: 2 }}>
               <LinearProgress variant="determinate" value={syncStatus.progress} />
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {syncStatus.message}
+              </Typography>
             </Box>
           )}
 
-          {syncStatus.message && (
+          {syncStatus.success !== null && !syncStatus.isRunning && (
             <Alert 
-              severity={syncStatus.message.includes('Hata') ? 'error' : 'success'}
-              sx={{ mb: 2 }}
+              severity={syncStatus.success ? "success" : "error"}
+              sx={{ mt: 2 }}
             >
               {syncStatus.message}
             </Alert>
-          )}
-
-          {syncStatus.logs.length > 0 && (
-            <>
-              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                İşlem Kayıtları
-              </Typography>
-              <List>
-                {syncStatus.logs.map((log, index) => (
-                  <React.Fragment key={index}>
-                    <ListItem>
-                      <ListItemText primary={log} />
-                    </ListItem>
-                    {index < syncStatus.logs.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
-            </>
           )}
         </CardContent>
       </Card>
     </Box>
   );
-}
+};
 
 export default OrderSync; 
