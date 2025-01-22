@@ -2,11 +2,11 @@ import os
 from flask import Flask, render_template, send_from_directory
 
 # Get the absolute path to the current directory
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.getcwd()
 
 app = Flask(__name__, 
-    static_folder=os.path.join(BASE_DIR, 'static'),
-    template_folder=os.path.join(BASE_DIR, 'templates')
+    static_folder=os.path.join(ROOT_DIR, 'static'),
+    template_folder=os.path.join(ROOT_DIR, 'templates')
 )
 
 # Enable debug mode
