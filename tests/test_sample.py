@@ -10,16 +10,16 @@ def test_app_config():
         from app import app
         assert app.config['DEBUG'] is not None
         
-        # Flask'ın root_path'ini kullanarak yolları oluştur
-        root_path = os.path.dirname(os.path.abspath(__file__))
-        root_path = os.path.dirname(root_path)  # tests dizininden bir üst dizine çık
+        # Flask'ın template_folder'ı göreceli yol olarak tutuyor
+        assert app.template_folder == 'templates'
         
-        expected_static_folder = os.path.join(root_path, 'static')
-        expected_template_folder = os.path.join(root_path, 'templates')
-        
-        # Yolları normalize et ve karşılaştır
+        # static_folder için tam yol kontrolü
+        expected_static_folder = os.path.join(os.getcwd(), 'static')
         assert os.path.normpath(os.path.abspath(app.static_folder)) == os.path.normpath(expected_static_folder)
-        assert os.path.normpath(os.path.abspath(app.template_folder)) == os.path.normpath(expected_template_folder)
+        
+        # Template dizininin varlığını kontrol et
+        template_path = os.path.join(os.getcwd(), app.template_folder)
+        assert os.path.isdir(template_path), f"Template directory not found at {template_path}"
     except ImportError:
         assert False, "Failed to import app module"
 
