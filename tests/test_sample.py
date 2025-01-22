@@ -1,4 +1,5 @@
 import os
+import flask
 
 def test_example():
     assert True
@@ -8,10 +9,17 @@ def test_app_config():
     try:
         from app import app
         assert app.config['DEBUG'] is not None
-        expected_static_folder = os.path.join(os.getcwd(), 'static')
-        expected_template_folder = os.path.join(os.getcwd(), 'templates')
-        assert os.path.normpath(app.static_folder) == os.path.normpath(expected_static_folder)
-        assert os.path.normpath(app.template_folder) == os.path.normpath(expected_template_folder)
+        
+        # Flask'ın root_path'ini kullanarak yolları oluştur
+        root_path = os.path.dirname(os.path.abspath(__file__))
+        root_path = os.path.dirname(root_path)  # tests dizininden bir üst dizine çık
+        
+        expected_static_folder = os.path.join(root_path, 'static')
+        expected_template_folder = os.path.join(root_path, 'templates')
+        
+        # Yolları normalize et ve karşılaştır
+        assert os.path.normpath(os.path.abspath(app.static_folder)) == os.path.normpath(expected_static_folder)
+        assert os.path.normpath(os.path.abspath(app.template_folder)) == os.path.normpath(expected_template_folder)
     except ImportError:
         assert False, "Failed to import app module"
 
