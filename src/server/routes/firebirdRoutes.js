@@ -3,22 +3,29 @@ const router = express.Router();
 const firebirdController = require('../controllers/firebirdController');
 
 // Bağlantı ayarlarını kaydet
-router.post('/connection/save', async (req, res) => {
+router.post('/settings', async (req, res) => {
     try {
         const result = await firebirdController.saveConnectionSettings(req.body);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 });
 
 // Bağlantıyı test et
-router.post('/connection/test', async (req, res) => {
+router.post('/test', async (req, res) => {
     try {
-        const result = await firebirdController.testConnection();
+        const result = await firebirdController.testConnection(req.body);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Test endpoint hatası:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Bağlantı testi başarısız: ' + error.message
+        });
     }
 });
 
@@ -28,7 +35,23 @@ router.get('/products', async (req, res) => {
         const result = await firebirdController.getProducts();
         res.json(result);
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// Stok durumunu getir
+router.get('/stock/:stokKodu', async (req, res) => {
+    try {
+        const result = await firebirdController.getProductStock(req.params.stokKodu);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 });
 
@@ -88,21 +111,6 @@ router.get('/stoklar', async (req, res) => {
             success: false, 
             message: 'Stok listesi alınamadı',
             error: error.message 
-        });
-    }
-});
-
-// Tek ürünün stok miktarını getir
-router.get('/stock/:stokKodu', async (req, res) => {
-    try {
-        const result = await firebirdController.getProductStock(req.params.stokKodu);
-        res.json(result);
-    } catch (error) {
-        console.error('Stok miktarı getirme hatası:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Stok miktarı getirilemedi',
-            error: error.message
         });
     }
 });

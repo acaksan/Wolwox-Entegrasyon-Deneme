@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Alert,
-  Grid,
-  Typography
-} from '@mui/material';
+import { Box, Typography, TextField, Button, Grid, Card, CardContent, Alert } from '@mui/material';
 
 const WolvoxConnection = () => {
   const [settings, setSettings] = useState({
@@ -27,11 +18,10 @@ const WolvoxConnection = () => {
     message: ''
   });
 
-  // Mevcut ayarları yükle
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/firebird/connection/current');
+        const response = await fetch('/api/firebird/settings');
         if (response.ok) {
           const data = await response.json();
           setSettings(data);
@@ -54,7 +44,7 @@ const WolvoxConnection = () => {
   const handleSave = async () => {
     setStatus({ loading: true, success: false, error: null, message: '' });
     try {
-      const response = await fetch('/api/firebird/connection/save', {
+      const response = await fetch('/api/firebird/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -72,7 +62,7 @@ const WolvoxConnection = () => {
           message: 'Ayarlar başarıyla kaydedildi'
         });
       } else {
-        throw new Error(data.error || 'Ayarlar kaydedilemedi');
+        throw new Error(data.message || 'Ayarlar kaydedilemedi');
       }
     } catch (error) {
       setStatus({
@@ -87,7 +77,13 @@ const WolvoxConnection = () => {
   const handleTest = async () => {
     setStatus({ loading: true, success: false, error: null, message: '' });
     try {
-      const response = await fetch('/api/firebird/connection/test');
+      const response = await fetch('/api/firebird/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+      });
       const data = await response.json();
       
       if (response.ok && data.success) {
@@ -98,7 +94,7 @@ const WolvoxConnection = () => {
           message: 'Bağlantı testi başarılı'
         });
       } else {
-        throw new Error(data.error || 'Bağlantı testi başarısız');
+        throw new Error(data.message || 'Bağlantı testi başarısız');
       }
     } catch (error) {
       setStatus({

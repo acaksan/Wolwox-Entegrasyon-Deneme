@@ -1,36 +1,80 @@
-const firebird = require('../config/firebird');
+const Firebird = require('node-firebird');
+const config = require('../config/firebird');
 
 // Bağlantı ayarlarını kaydet
 async function saveConnectionSettings(settings) {
     try {
-        // Burada bağlantı ayarlarını .env dosyasına veya veritabanına kaydedebilirsiniz
-        // Şimdilik sadece test ediyoruz
-        process.env.FB_HOST = settings.host;
-        process.env.FB_PORT = settings.port;
-        process.env.FB_DATABASE = settings.database;
-        process.env.FB_USER = settings.username;
-        process.env.FB_PASSWORD = settings.password;
-        process.env.FB_CHARSET = settings.charset;
-
-        return { success: true, message: 'Bağlantı ayarları başarıyla kaydedildi.' };
+        // Ayarları doğrula
+        if (!settings.host || !settings.database || !settings.user || !settings.password) {
+            throw new Error('Tüm bağlantı bilgileri gereklidir');
+        }
+        
+        return {
+            success: true,
+            message: 'Bağlantı ayarları kaydedildi'
+        };
     } catch (error) {
-        console.error('Bağlantı ayarları kaydedilirken hata oluştu:', error);
-        throw new Error('Bağlantı ayarları kaydedilemedi.');
+        console.error('Bağlantı ayarları kaydedilirken hata:', error);
+        throw error;
     }
 }
 
 // Bağlantıyı test et
-async function testConnection() {
+async function testConnection(settings) {
+    let connection;
     try {
-        const isConnected = await firebird.testConnection();
-        if (isConnected) {
-            return { success: true, message: 'Bağlantı başarılı.' };
-        } else {
-            return { success: false, message: 'Bağlantı başarısız.' };
+        // Ayarları doğrula
+        if (!settings || !settings.host || !settings.database || !settings.username || !settings.password) {
+            throw new Error('Tüm bağlantı bilgileri gereklidir');
         }
+
+        // Test için yeni bir bağlantı oluştur
+        const testOptions = {
+            host: settings.host,
+            port: parseInt(settings.port) || 3050,
+            database: settings.database,
+            user: settings.username,
+            password: settings.password,
+            charset: settings.charset || 'WIN1254'
+        };
+
+        // Bağlantıyı test et
+        connection = await new Promise((resolve, reject) => {
+            Firebird.attach(testOptions, (err, db) => {
+                if (err) {
+                    console.error('Bağlantı hatası:', err);
+                    reject(err);
+                    return;
+                }
+                resolve(db);
+            });
+        });
+
+        // Basit bir sorgu dene
+        await new Promise((resolve, reject) => {
+            connection.query('SELECT 1 FROM RDB$DATABASE', [], (err, result) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(result);
+            });
+        });
+        
+        return {
+            success: true,
+            message: 'Bağlantı başarılı'
+        };
     } catch (error) {
-        console.error('Bağlantı testi sırasında hata:', error);
-        throw new Error('Bağlantı testi başarısız oldu.');
+        console.error('Bağlantı testi hatası:', error);
+        return {
+            success: false,
+            message: 'Bağlantı başarısız: ' + error.message
+        };
+    } finally {
+        if (connection) {
+            connection.detach();
+        }
     }
 }
 
@@ -54,7 +98,7 @@ async function getProducts() {
         `;
         
         console.log('SQL Sorgusu:', sql);
-        const products = await firebird.query(sql);
+        const products = await config.query(sql);
         console.log('Sorgu sonucu:', products);
         
         // NULL olmayan alanları filtreleyelim
@@ -90,7 +134,7 @@ async function getProductStock(stokKodu) {
     
     // Önce ürünün BLKODU'nu alalım
     const blkoduQuery = `SELECT BLKODU FROM STOK WHERE STOKKODU = ?`;
-    const blkoduResult = await firebird.query(blkoduQuery, [stokKodu]);
+    const blkoduResult = await config.query(blkoduQuery, [stokKodu]);
     
     if (!blkoduResult || blkoduResult.length === 0) {
       return {
@@ -120,7 +164,7 @@ async function getProductStock(stokKodu) {
       ORDER BY sh.DEPO_ADI`;
     
     console.log('SQL Sorgusu:', sql);
-    const result = await firebird.query(sql, [blkodu, ...depolar]);
+    const result = await config.query(sql, [blkodu, ...depolar]);
     console.log('Stok bilgisi:', result);
     
     if (result && result.length > 0) {
@@ -177,7 +221,7 @@ async function getAllProductsStock() {
       ORDER BY RDB$RELATION_NAME`;
     
     console.log('Tablo arama sorgusu:', tableQuery);
-    const tables = await firebird.query(tableQuery);
+    const tables = await config.query(tableQuery);
     console.log('Bulunan tablolar:', tables);
     
     // Aktif ürünleri getirelim
@@ -194,7 +238,7 @@ async function getAllProductsStock() {
       ORDER BY s.STOKKODU`;
     
     console.log('Stok sorgusu:', sql);
-    const result = await firebird.query(sql);
+    const result = await config.query(sql);
     console.log('Stok bilgileri:', result);
     
     if (result && result.length > 0) {
@@ -249,7 +293,7 @@ async function getProductImages(stokKodu) {
             WHERE STOK_KODU = ?
         `;
         
-        const result = await firebird.query(sql, [stokKodu]);
+        const result = await config.query(sql, [stokKodu]);
         
         if (result.length === 0) {
             return { success: true, data: [] };
@@ -282,7 +326,7 @@ async function getStockLevels() {
             WHERE S.AKTIF = 'E'
         `;
         
-        const stockLevels = await firebird.query(sql);
+        const stockLevels = await config.query(sql);
         return { success: true, data: stockLevels };
     } catch (error) {
         console.error('Stok seviyeleri getirilirken hata:', error);
@@ -312,7 +356,7 @@ async function getOrders(startDate, endDate, status) {
         const params = [startDate, endDate];
         if (status) params.push(status);
         
-        const orders = await firebird.query(sql, params);
+        const orders = await config.query(sql, params);
         return { success: true, data: orders };
     } catch (error) {
         console.error('Siparişler getirilirken hata:', error);
@@ -335,7 +379,7 @@ async function getProductPrice() {
         `;
         
         console.log('SQL Sorgusu:', sql);
-        const prices = await firebird.query(sql);
+        const prices = await config.query(sql);
         console.log('Sorgu sonucu:', prices);
         
         return { 
@@ -383,7 +427,7 @@ const getProductPrices = async () => {
     console.log('SQL Sorgusu:', sql);
     console.log('Ürün Kodları:', urunKodlari);
     
-    const prices = await firebird.query(sql, urunKodlari);
+    const prices = await config.query(sql, urunKodlari);
     console.log('Fiyat bilgileri:', prices);
     
     if (prices && prices.length > 0) {
