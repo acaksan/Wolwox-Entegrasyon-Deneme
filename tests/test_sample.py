@@ -7,12 +7,16 @@ def test_example():
 def test_app_config():
     """Test basic application configuration"""
     try:
-        from app import app
-        assert app.config['DEBUG'] is not None
+        from app import app, BASE_DIR
+        assert app.config['DEBUG'] is True
 
-        # Basit yol karşılaştırması
-        assert 'static' in os.path.normpath(app.static_folder)
-        assert 'templates' in os.path.normpath(app.template_folder)
+        # Beklenen yolları oluştur
+        expected_static_folder = os.path.join(BASE_DIR, 'static')
+        expected_template_folder = os.path.join(BASE_DIR, 'templates')
+
+        # Yolları karşılaştır
+        assert os.path.normpath(app.static_folder) == os.path.normpath(expected_static_folder)
+        assert os.path.normpath(app.template_folder) == os.path.normpath(expected_template_folder)
     except ImportError:
         assert False, "Failed to import app module"
 
