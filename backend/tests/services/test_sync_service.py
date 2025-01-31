@@ -1,20 +1,27 @@
 """SyncService testleri."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, AsyncMock
 from services.sync_service import SyncService
 
 
 @pytest.fixture
 def mock_woo_service():
     """Mock WooCommerceService fixture'ı."""
-    return Mock()
+    mock = Mock()
+    mock.get_new_orders = AsyncMock()
+    mock.update_or_create_product = AsyncMock()
+    mock.update_stock = AsyncMock()
+    return mock
 
 
 @pytest.fixture
 def mock_wolvox_service():
     """Mock WolvoxProductService fixture'ı."""
-    return Mock()
+    mock = Mock()
+    mock.get_products = AsyncMock()
+    mock.create_order = AsyncMock()
+    return mock
 
 
 @pytest.fixture
