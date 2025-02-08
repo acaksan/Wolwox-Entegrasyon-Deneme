@@ -1,0 +1,34 @@
+name: Update Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Her Pazar günü
+  workflow_dispatch:
+
+jobs:
+  update-deps:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Update dependencies
+        run: |
+          pip install pip-tools
+          pip-compile --upgrade requirements.in
+          pip-compile --upgrade requirements-dev.in
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: 'chore: update dependencies'
+          title: 'chore: update dependencies'
+          branch: 'chore/update-dependencies'
+          base: 'develop'
+          labels: 'dependencies' 

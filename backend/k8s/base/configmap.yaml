@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wolvox-config
+  namespace: wolvox
+data:
+  WOOCOMMERCE_URL: "https://lastik-al.com"
+  FIREBIRD_HOST: "firebird-service"
+  REDIS_URL: "redis://redis-service:6379/0"
+  LOG_LEVEL: "INFO" 

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wolvox-integration
+  namespace: wolvox
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wolvox-integration
+  template:
+    metadata:
+      labels:
+        app: wolvox-integration
+    spec:
+      containers:
+      - name: wolvox-integration
+        image: wolvox-integration:latest
+        ports:
+        - containerPort: 3002
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: wolvox-secrets
+              key: database-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 5 

@@ -1,0 +1,116 @@
+🚀 Wolvox-WooCommerce Entegrasyonu - Veritabanı Bağlantı ve Sorgu Standartları
+
+Bu belge, veritabanı bağlantı yönetimi, sorgu optimizasyonu ve güvenlik kurallarını belirler. Tüm Firebird veritabanı işlemleri modüler, güvenli ve performans odaklı olmalıdır.
+
+📌 1. Genel Kurallar
+
+✔ Tüm veritabanı işlemleri merkezi bir yönetim dosyası üzerinden yürütülmelidir.
+
+Veritabanı bağlantısı database.py dosyasında tanımlanmalıdır.
+
+Tüm sorgular repositories/ klasöründe, ilgili varlık adına göre ayrılmalıdır.
+
+✔ Bağlantı yönetimi ve güvenliği en üst düzeyde tutulmalıdır.
+
+Veritabanı bağlantı bilgileri .env dosyasında saklanmalıdır.
+
+Açıkta bağlantı bilgisi içeren dosyalar commit edilmeyecektir.
+
+✔ Her sorgu performans açısından optimize edilmelidir.
+
+Gereksiz sorgu çalıştırılmamalı, JOIN ve INDEX kullanımı optimize edilmelidir.
+
+Veri setleri gereksiz yere tüm satırları çekmemelidir.
+
+✔ Bağlantı yönetimi otomatik yapılmalıdır.
+
+Bağlantılar gerektiği zaman açılmalı ve iş bitiminde kapatılmalıdır.
+
+Uzun süre açık kalan bağlantılar sistem performansını düşürmemelidir.
+
+📌 2. Firebird Veritabanı Bağlantı Yönetimi
+
+✔ Tek bir bağlantı yöneticisi kullanılacaktır (database.py).
+✔ Bağlantı yönetimi Singleton tasarım deseni ile sağlanmalıdır.
+✔ Bağlantılar dinamik olarak açılıp kapanmalıdır.
+
+📌 Firebird Veritabanı Bağlantı Bilgileri:
+
+FIREBIRD_HOST=localhost
+FIREBIRD_DATABASE=D:\AKINSOFT\Wolvox8\Database_FB\DEMOWOLVOX\2025\WOLVOX.FDB
+FIREBIRD_USER=SYSDBA
+FIREBIRD_PASSWORD=masterkey
+FIREBIRD_PORT=3050
+FIREBIRD_CHARSET=WIN1254
+FIREBIRD_CLIENT_DLL=C:\Program Files (x86)\Firebird\Firebird_2_5\bin\fbclient.dll
+
+📌 Örnek Firebird Bağlantı Yöneticisi:
+
+import fdb
+import os
+
+class FirebirdDB:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(FirebirdDB, cls).__new__(cls)
+            cls._instance.conn = fdb.connect(
+                dsn=f"{os.getenv('FIREBIRD_HOST')}:{os.getenv('FIREBIRD_DATABASE')}",
+                user=os.getenv("FIREBIRD_USER"),
+                password=os.getenv("FIREBIRD_PASSWORD"),
+                charset=os.getenv("FIREBIRD_CHARSET"),
+                fb_library_name=os.getenv("FIREBIRD_CLIENT_DLL"),
+                port=int(os.getenv("FIREBIRD_PORT"))
+            )
+            cls._instance.cursor = cls._instance.conn.cursor()
+        return cls._instance
+
+    def execute_query(self, query, params=None):
+        """Parametreli SQL sorgularını güvenli bir şekilde çalıştırır."""
+        try:
+            self._instance.cursor.execute(query, params or ())
+            return self._instance.cursor.fetchall()
+        except fdb.DatabaseError as e:
+            print(f"Veritabanı Hatası: {e}")
+            return None
+        
+    def close(self):
+        """Bağlantıyı kapatır."""
+        self._instance.cursor.close()
+        self._instance.conn.close()
+
+📌 3. Stok Sorguları
+
+✔ Stok verileri repositories/stok_repository.py içinde yönetilecektir.
+✔ Sorgular optimize edilmeli ve sadece gerekli veriler çekilmelidir.
+✔ Webde görünecek stok kartları ve tekil stok kartı sorguları merkezi hale getirilmelidir.
+
+📌 Örnek Stok Kartları Sorgusu:
+
+from database import FirebirdDB
+
+class StokRepository:
+    def __init__(self):
+        self.db = FirebirdDB()
+    
+    def get_stok_kartlari(self, limit=100):
+        """Aktif ve webde görünen stok kartlarını getirir."""
+        query = f"""
+            SELECT FIRST {limit}
+                s.BLKODU, s.STOKKODU, s.STOK_ADI, s.BARKODU, s.BIRIMI, s.KDV_ORANI,
+                s.MARKASI, s.MODELI, s.GRUBU, s.ALT_GRUBU, s.WEBDE_GORUNSUN,
+                s.AKTIF, s.BIRIM_AGIRLIK, s.ETICARET_ACIKLAMA, s.RESIM_YOLU,
+                (SELECT COALESCE(SUM(
+                    CASE WHEN sh.TUTAR_TURU = 0 THEN sh.MIKTARI ELSE -sh.MIKTARI END), 0)
+                 FROM STOKHR sh WHERE sh.BLSTKODU = s.BLKODU AND sh.SILINDI = 0) as KALAN_MIKTAR,
+                (SELECT FIRST 1 sf.FIYATI FROM STOK_FIYAT sf WHERE sf.BLSTKODU = s.BLKODU 
+                 AND sf.FIYAT_NO = 1 AND sf.TANIMI = 'SATIŞ FİYATI -1') as SATIS_FIYATI
+            FROM STOK s
+            WHERE s.AKTIF = 1 AND s.WEBDE_GORUNSUN = 1
+            ORDER BY s.STOK_ADI
+        """
+        return self.db.execute_query(query)
+
+Bu belge katı kurallar içermektedir ve bu kurallara uyulmadan veritabanı işlemleri gerçekleştirilemez. 🚀
+

@@ -1,0 +1,141 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Sistem Performans Optimizasyonu Standartları
+
+Bu belge, **sistem performansının nasıl artırılacağını, sorgu ve API çağrılarının nasıl optimize edileceğini ve altyapı ölçeklendirme stratejilerini** belirler. **Sistem her zaman hızlı, verimli ve ölçeklenebilir olmalıdır.**
+
+---
+
+## 📌 1. Genel Performans Kuralları
+✔ **Veritabanı, API ve sistem kaynakları optimize edilmelidir.**
+✔ **Gereksiz sorgular çalıştırılmamalıdır.**
+✔ **Önbellekleme (caching) aktif olarak kullanılmalıdır.**
+✔ **Yük dengeleme (load balancing) uygulanmalıdır.**
+✔ **Performans izleme araçları entegre edilmelidir.**
+
+---
+
+## 📌 2. Veritabanı Optimizasyonu
+✔ **Sorgular indekslenmeli ve optimize edilmelidir.**
+✔ **`SELECT *` yerine sadece gerekli sütunlar seçilmelidir.**
+✔ **Büyük veri setleri `LIMIT` ile sınırlandırılmalıdır.**
+✔ **Sık kullanılan sorgular için `Materialized Views` veya `Stored Procedures` kullanılmalıdır.**
+✔ **Veritabanı tabloları düzenli olarak bakım yapılmalı ve analiz edilmelidir.**
+
+📌 **Örnek Optimize Edilmiş Sorgu:**
+```sql
+SELECT ID, NAME, PRICE FROM PRODUCTS WHERE CATEGORY_ID = ? LIMIT 100;
+```
+
+📌 **Örnek Firebird Veritabanı İndeks Kullanımı:**
+```sql
+CREATE INDEX IDX_PRODUCTS_CATEGORY ON PRODUCTS (CATEGORY_ID);
+```
+
+📌 **Örnek Veritabanı Bakım Komutu:**
+```bash
+gfix -sweep /path/to/database.fdb
+```
+
+---
+
+## 📌 3. API Optimizasyonu
+✔ **Tüm API çağrıları optimize edilmelidir.**
+✔ **Yoğun API istekleri için `batch processing` uygulanmalıdır.**
+✔ **Önbellekleme (Redis, Memcached) kullanılarak sık erişilen veriler API'den çekilmeden hızlı yanıt verilmelidir.**
+✔ **Asenkron API çağrıları kullanılmalıdır.**
+✔ **API yanıt süreleri analiz edilmeli ve gerektiğinde sorgu süresi azaltılmalıdır.**
+
+📌 **Örnek API Önbellekleme Kullanımı (Redis):**
+```python
+import aioredis
+import json
+
+class CacheService:
+    def __init__(self):
+        self.redis = aioredis.from_url("redis://localhost")
+    
+    async def get_cached_data(self, key):
+        """Önbellekten veri alır."""
+        data = await self.redis.get(key)
+        return json.loads(data) if data else None
+    
+    async def set_cached_data(self, key, value, expire=3600):
+        """Önbelleğe veri ekler."""
+        await self.redis.set(key, json.dumps(value), ex=expire)
+```
+
+📌 **Örnek Asenkron API Kullanımı:**
+```python
+import aiohttp
+import asyncio
+
+async def fetch_data(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
+```
+
+---
+
+## 📌 4. Sistem Kaynak Optimizasyonu
+✔ **Sunucu kaynakları düzenli olarak izlenmelidir.**
+✔ **İşlemci (CPU) ve bellek (RAM) kullanımı analiz edilmelidir.**
+✔ **Docker veya Kubernetes ile mikro hizmetler ölçeklenebilir hale getirilmelidir.**
+✔ **Gereksiz süreçler kapatılmalı ve arka plan işlemleri optimize edilmelidir.**
+✔ **Log yönetimi belirli bir strateji ile yapılmalı ve disk tüketimi kontrol edilmelidir.**
+
+📌 **Örnek Docker ile Ölçeklendirme:**
+```yaml
+version: '3.8'
+services:
+  web:
+    image: myapp:latest
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+```
+
+📌 **Örnek Sistem İzleme Komutları:**
+```bash
+top  # Gerçek zamanlı CPU ve bellek kullanımı
+df -h  # Disk kullanım durumu
+netstat -tulnp  # Açık bağlantı noktalarını gösterir
+```
+
+---
+
+## 📌 5. Performans İzleme ve Loglama
+✔ **Performans analizi için Prometheus ve Grafana gibi izleme araçları kullanılmalıdır.**
+✔ **Tüm API çağrıları loglanmalı ve performans metrikleri analiz edilmelidir.**
+✔ **Anormal durumlar otomatik olarak tespit edilmeli ve yöneticilere bildirilmelidir.**
+✔ **Hata logları belirli periyotlarla temizlenmelidir.**
+
+📌 **Örnek Prometheus Konfigürasyonu:**
+```yaml
+scrape_configs:
+  - job_name: 'api'
+    static_configs:
+      - targets: ['localhost:8000']
+```
+
+📌 **Örnek Performans Loglama:**
+```python
+import logging
+import time
+
+logging.basicConfig(filename='logs/performance.log', level=logging.INFO)
+
+def log_performance(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        duration = time.time() - start_time
+        logging.info(f"{func.__name__} çalıştırıldı - Süre: {duration:.4f} saniye")
+        return result
+    return wrapper
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan sistem performansı garanti edilemez.** 🚀
+

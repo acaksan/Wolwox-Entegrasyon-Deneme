@@ -1,0 +1,135 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Senkronizasyon Süreçleri ve Veri Akışı Standartları
+
+Bu belge, **Wolvox ERP ile WooCommerce arasında veri senkronizasyonunun nasıl gerçekleştirileceğini** tanımlar. **Tüm veri akış süreçleri kontrollü, hatasız ve optimize edilmiş olmalıdır.**
+
+---
+
+## 📌 1. Genel Kurallar
+✔ **Tüm veri senkronizasyonu merkezi bir yapı üzerinden gerçekleştirilmelidir.**
+   - **Senkronizasyon işlemleri `sync/` klasöründe yönetilecektir.**
+   - **Her senkronizasyon işlemi belirli bir görev üzerinden çalışacaktır.**
+
+✔ **Veri senkronizasyonu belirli periyotlarla ve manuel olarak çalıştırılabilmelidir.**
+   - **Zamanlanmış görevler ile düzenli çalışmalıdır (örn: her 15 dakikada bir).**
+   - **Manuel tetikleme imkanı sunulmalıdır.**
+
+✔ **Tüm veri işlemleri loglanmalı ve hatalar raporlanmalıdır.**
+   - **Başarılı ve başarısız işlemler `logs/sync.log` dosyasına kaydedilmelidir.**
+   - **Hata durumunda yöneticilere bildirim gönderilmelidir.**
+
+✔ **Veri bütünlüğü sağlanmalıdır.**
+   - **Wolvox ve WooCommerce verileri çapraz kontrol edilmelidir.**
+   - **Eksik veya hatalı veriler için otomatik düzeltme mekanizması uygulanmalıdır.**
+
+---
+
+## 📌 2. Veri Senkronizasyon Akışı
+
+### 🟢 **Ürün Senkronizasyonu (`sync_products.py`)**
+1️⃣ **Wolvox'tan tüm ürünleri çek.**
+2️⃣ **WooCommerce ile mevcut ürünleri karşılaştır.**
+3️⃣ **Güncellenmesi gereken ürünleri belirle.**
+4️⃣ **Yeni ürünleri WooCommerce'e ekle.**
+5️⃣ **Stok ve fiyat bilgilerini güncelle.**
+6️⃣ **İşlem kayıtlarını `sync.log` dosyasına yaz.**
+
+📌 **Örnek Ürün Senkronizasyon Kodu:**
+```python
+from repositories.product_repository import ProductRepository
+from services.woocommerce_service import WooCommerceService
+from utils.logger import log_event
+
+def sync_products():
+    """Wolvox'taki ürünleri WooCommerce ile senkronize eder."""
+    product_repo = ProductRepository()
+    woo_service = WooCommerceService()
+
+    wolvox_products = product_repo.get_all_products()
+    woocommerce_products = woo_service.get_products()
+
+    for product in wolvox_products:
+        if product["stok_kodu"] not in [p["sku"] for p in woocommerce_products]:
+            woo_service.create_product(product)
+        else:
+            woo_service.update_product(product)
+    
+    log_event("INFO", "sync_products", "Ürün senkronizasyonu tamamlandı.")
+```
+
+---
+
+### 🟢 **Stok Senkronizasyonu (`sync_stock.py`)**
+1️⃣ **Wolvox’tan stok bilgilerini çek.**
+2️⃣ **WooCommerce’deki stok bilgileri ile karşılaştır.**
+3️⃣ **Farklı olanları güncelle.**
+4️⃣ **İşlem kayıtlarını `sync.log` dosyasına yaz.**
+
+📌 **Örnek Stok Senkronizasyon Kodu:**
+```python
+from repositories.stok_repository import StokRepository
+from services.woocommerce_service import WooCommerceService
+from utils.logger import log_event
+
+def sync_stock():
+    """Wolvox'tan stok miktarlarını çekip WooCommerce ile senkronize eder."""
+    stok_repo = StokRepository()
+    woo_service = WooCommerceService()
+
+    wolvox_stock = stok_repo.get_all_stock()
+    for stock in wolvox_stock:
+        woo_service.update_stock(stock["stok_kodu"], stock["kalan_miktar"])
+    
+    log_event("INFO", "sync_stock", "Stok senkronizasyonu tamamlandı.")
+```
+
+---
+
+### 🟢 **Sipariş Senkronizasyonu (`sync_orders.py`)**
+1️⃣ **WooCommerce’den siparişleri çek.**
+2️⃣ **Wolvox’ta ilgili müşteri bilgilerini kontrol et.**
+3️⃣ **Siparişi Wolvox ERP’ye aktar.**
+4️⃣ **Sipariş durumu güncellenmeli ve log kaydedilmelidir.**
+
+📌 **Örnek Sipariş Senkronizasyon Kodu:**
+```python
+from repositories.order_repository import OrderRepository
+from services.woocommerce_service import WooCommerceService
+from utils.logger import log_event
+
+def sync_orders():
+    """WooCommerce siparişlerini Wolvox ERP ile senkronize eder."""
+    order_repo = OrderRepository()
+    woo_service = WooCommerceService()
+
+    woocommerce_orders = woo_service.get_orders()
+    for order in woocommerce_orders:
+        order_repo.create_order_in_wolvox(order)
+    
+    log_event("INFO", "sync_orders", "Sipariş senkronizasyonu tamamlandı.")
+```
+
+---
+
+## 📌 3. Hata Yönetimi
+✔ **Tüm hata mesajları `logs/sync.log` dosyasına kaydedilmelidir.**
+✔ **Kritik hatalar yöneticilere Slack/Webhook/E-posta ile iletilmelidir.**
+✔ **Başarısız işlemler için tekrar deneme mekanizması bulunmalıdır.**
+
+📌 **Örnek Hata Yönetimi Mekanizması:**
+```python
+import logging
+
+def handle_sync_error(error_message, sync_type):
+    """Senkranizasyon hatalarını loglar ve yöneticilere bildirir."""
+    logging.error(f"{sync_type} senkronizasyonunda hata: {error_message}")
+    notify_admin(f"{sync_type} senkronizasyonunda hata oluştu: {error_message}")
+
+def notify_admin(message):
+    """Yöneticiye e-posta/SMS/Slack bildirimi gönderir."""
+    print(f"UYARI! Yöneticiye bildirildi: {message}")  # Gerçek sistemde mail/sms gönderimi yapılır.
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan veri senkronizasyonu yapılamaz.** 🚀
+

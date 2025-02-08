@@ -1,0 +1,106 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Test ve Hata Ayıklama Standartları
+
+Bu belge, **test süreçlerinin nasıl yönetileceğini, hata ayıklamanın nasıl yapılacağını ve yazılımın stabil çalışmasını sağlamak için alınması gereken önlemleri** belirler. **Tüm testler otomatikleştirilmeli ve düzenli olarak çalıştırılmalıdır.**
+
+---
+
+## 📌 1. Genel Test Kuralları
+✔ **Tüm kodlar test edilmeden canlı sisteme alınmamalıdır.**
+✔ **Ünite (Unit), Entegrasyon (Integration) ve Kullanıcı Kabul (UAT) testleri yapılmalıdır.**
+✔ **Testler otomatik olarak CI/CD süreçlerine entegre edilmelidir.**
+✔ **Hata ayıklama mekanizmaları geliştirme aşamasında aktif edilmelidir.**
+
+---
+
+## 📌 2. Test Türleri
+✔ **Ünite Testleri (Unit Tests):** Bireysel modülleri ve fonksiyonları test eder.
+✔ **Entegrasyon Testleri (Integration Tests):** Farklı sistemlerin birlikte çalışmasını doğrular.
+✔ **Fonksiyonel Testler (Functional Tests):** Sistemin beklenen işlemleri yerine getirdiğini doğrular.
+✔ **Yük Testleri (Load Tests):** Sistemin yoğun trafikte nasıl çalıştığını belirler.
+✔ **Kullanıcı Kabul Testleri (UAT):** Son kullanıcı deneyimini doğrular.
+
+📌 **Örnek Test Çerçevesi:**
+```python
+import unittest
+from services.woocommerce_service import WooCommerceService
+
+class TestWooCommerceAPI(unittest.TestCase):
+    def setUp(self):
+        self.woo_service = WooCommerceService()
+
+    def test_get_products(self):
+        response = self.woo_service.get_products()
+        self.assertIsInstance(response, list)
+        self.assertGreater(len(response), 0)
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+---
+
+## 📌 3. Hata Ayıklama (Debugging) Süreci
+✔ **Hata raporlama mekanizması kullanılmalıdır.**
+✔ **Loglar hata ayıklama sırasında detaylı bilgi içermelidir.**
+✔ **Hatalar sınıflandırılmalı ve önceliklendirilmelidir.**
+✔ **Gerçek zamanlı hata izleme için Sentry veya benzeri bir sistem entegre edilmelidir.**
+
+📌 **Örnek Python Debugging Kullanımı:**
+```python
+import logging
+
+def divide(a, b):
+    try:
+        return a / b
+    except ZeroDivisionError as e:
+        logging.error(f"Hata: {e}")
+        return None
+```
+
+📌 **Örnek Sentry Entegrasyonu:**
+```python
+import sentry_sdk
+sentry_sdk.init("https://your-dsn@sentry.io/project")
+
+try:
+    1 / 0  # Sıfıra bölme hatası
+except Exception as e:
+    sentry_sdk.capture_exception(e)
+```
+
+---
+
+## 📌 4. Test Otomasyonu ve CI/CD Entegrasyonu
+✔ **Testler CI/CD pipeline içinde otomatik olarak çalıştırılmalıdır.**
+✔ **Başarısız olan testler düzeltmeden canlıya alınmamalıdır.**
+✔ **Test kapsamı %80'in altında olmamalıdır.**
+✔ **Sistem testleri belirli periyotlarla otomatik olarak çalıştırılmalıdır.**
+
+📌 **Örnek GitHub Actions Test Pipeline:**
+```yaml
+name: CI Test Pipeline
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kod
+        uses: actions/checkout@v2
+      
+      - name: Python ortamını hazırla
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      
+      - name: Bağımlılıkları yükle
+        run: pip install -r requirements.txt
+      
+      - name: Testleri çalıştır
+        run: pytest
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan yazılım test süreçleri tamamlanamaz.** 🚀

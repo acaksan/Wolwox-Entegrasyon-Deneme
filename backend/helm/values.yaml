@@ -1,0 +1,79 @@
+replicaCount: 2
+
+image:
+  repository: wolvox-integration
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: api.wolvox-integration.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 1
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+redis:
+  enabled: true
+  architecture: standalone
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+env:
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: wolvox-secrets
+        key: database_url
+  - name: REDIS_URL
+    valueFrom:
+      secretKeyRef:
+        name: wolvox-secrets
+        key: redis_url
+  - name: WC_URL
+    valueFrom:
+      secretKeyRef:
+        name: wolvox-secrets
+        key: wc_url
+  - name: WC_CONSUMER_KEY
+    valueFrom:
+      secretKeyRef:
+        name: wolvox-secrets
+        key: wc_consumer_key
+  - name: WC_CONSUMER_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: wolvox-secrets
+        key: wc_consumer_secret
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 5
+  periodSeconds: 5 

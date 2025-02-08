@@ -1,0 +1,45 @@
+{
+  "info": {
+    "name": "WolvoX Integration API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/products?skip=0&limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sync Products",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/products/sync",
+              "host": ["{{base_url}}"],
+              "path": ["products", "sync"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+} 

@@ -1,0 +1,55 @@
+# API Framework
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Database
+fdb==2.0.2
+
+# Data Validation
+pydantic==2.4.2
+python-dotenv==1.0.0
+pydantic-settings==2.0.3
+
+# Testing
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-asyncio==0.23.3
+
+# Code Quality
+black==24.1.1
+isort==5.13.2
+flake8==7.0.0
+
+# Authentication & Security
+python-jose==3.3.0
+passlib==1.7.4
+python-multipart==0.0.6
+
+# External Services
+WooCommerce==3.0.0
+
+# Caching & Performance
+redis==5.0.1
+
+# Monitoring & Logging
+prometheus-client==0.19.0
+sentry-sdk==1.40.0
+python-json-logger==2.0.7
+
+# Optional Dependencies
+aiohttp==3.9.1
+
+# Redis
+aioredis==2.0.1
+
+# New dependencies
+httpx==0.26.0
+email-validator==2.1.0.post1
+gunicorn==21.2.0
+supervisor==4.2.5
+tenacity==8.2.3
+aiocache==0.12.2
+structlog==24.1.0
+
+# Elasticsearch
+elasticsearch==8.11.0

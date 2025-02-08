@@ -1,0 +1,151 @@
+---
+description: 
+globs: 
+---
+### 🚀 Wolvox-WooCommerce Entegrasyonu - WooCommerce API Entegrasyon Standartları
+
+Bu belge, **WooCommerce API ile entegrasyon sürecinin nasıl yönetileceğini**, **veri aktarımını nasıl optimize edeceğimizi** ve **güvenliği nasıl sağlayacağımızı** tanımlar. 
+
+---
+
+## 📌 1. Genel Kurallar
+✔ **Tüm WooCommerce API çağrıları merkezi bir servis üzerinden gerçekleştirilecektir.**
+   - **Tüm API işlemleri `services/woocommerce_service.py` içinde yönetilecektir.**
+   - **Rastgele API çağrıları yerine, tüm işlemler belirlenen servisler üzerinden yapılmalıdır.**
+
+✔ **API istekleri optimize edilmelidir.**
+   - **Gereksiz tekrar eden isteklerden kaçınılmalıdır.**
+   - **WooCommerce API çağrıları asenkron (`async`) olarak yapılmalıdır.**
+
+✔ **WooCommerce API bağlantı bilgileri `.env` dosyasında saklanmalıdır.**
+   - **API anahtarları doğrudan kod içinde bulunmamalıdır.**
+
+✔ **Her API çağrısı loglanmalı ve hata durumları raporlanmalıdır.**
+   - **Başarısız işlemler `logs/api_errors.log` dosyasına yazılmalıdır.**
+   - **WooCommerce API yanıtları gerektiğinde kaydedilmelidir.**
+
+---
+
+## 📌 2. WooCommerce API Bağlantı Yönetimi
+✔ **WooCommerce API bağlantı bilgileri `.env` içinde tanımlanmalıdır.**
+
+📌 **WooCommerce API Bağlantı Bilgileri:**
+```
+WOOCOMMERCE_URL=https://lastik-al.com
+WOOCOMMERCE_KEY=ck_14ca8aab6f546bb34e5fd7f27ab0f77c6728c066
+WOOCOMMERCE_SECRET=cs_62e4007a181e06ed919fa469baaf6e3fac8ea45f
+WOOCOMMERCE_VERIFY_SSL=True
+WOOCOMMERCE_API_VERSION=wc/v3
+
+# WordPress kimlik bilgileri
+WORDPRESS_USERNAME=wolvox
+WORDPRESS_PASSWORD=Ac1476ac.!
+```
+
+📌 **Örnek WooCommerce API Yönetimi:**
+```python
+import os
+import aiohttp
+
+class WooCommerceService:
+    def __init__(self):
+        self.base_url = os.getenv("WOOCOMMERCE_URL") + "/wp-json/" + os.getenv("WOOCOMMERCE_API_VERSION") + "/"
+        self.auth = aiohttp.BasicAuth(os.getenv("WOOCOMMERCE_KEY"), os.getenv("WOOCOMMERCE_SECRET"))
+
+    async def fetch(self, endpoint):
+        """WooCommerce API'den veri çeker."""
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{self.base_url}{endpoint}", auth=self.auth, ssl=os.getenv("WOOCOMMERCE_VERIFY_SSL")) as response:
+                return await response.json()
+
+    async def post(self, endpoint, data):
+        """WooCommerce API'ye veri gönderir."""
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.base_url}{endpoint}", json=data, auth=self.auth, ssl=os.getenv("WOOCOMMERCE_VERIFY_SSL")) as response:
+                return await response.json()
+```
+
+---
+
+## 📌 3. WooCommerce API Kullanım Senaryoları
+
+### 🟢 **Ürün Getirme (`get_products()`)**
+📌 **Örnek API Çağrısı:**
+```python
+async def get_products(self):
+    """WooCommerce'den tüm ürünleri getirir."""
+    return await self.fetch("products")
+```
+
+---
+
+### 🟢 **Ürün Güncelleme (`update_product()`)**
+📌 **Örnek API Çağrısı:**
+```python
+async def update_product(self, product_id, data):
+    """WooCommerce ürününü günceller."""
+    return await self.post(f"products/{product_id}", data)
+```
+
+---
+
+### 🟢 **Stok Güncelleme (`update_stock()`)**
+📌 **Örnek API Çağrısı:**
+```python
+async def update_stock(self, product_id, stock_quantity):
+    """WooCommerce stok güncelleme işlemi."""
+    data = {"stock_quantity": stock_quantity}
+    return await self.post(f"products/{product_id}", data)
+```
+
+---
+
+## 📌 4. API Performans Optimizasyonu
+✔ **API çağrıları önbelleğe alınmalıdır (Redis).**
+✔ **Aynı veriyi tekrar tekrar almak yerine önbellekten çekilmelidir.**
+✔ **Yoğun API çağrıları için `batch processing` uygulanmalıdır.**
+
+📌 **Örnek Redis Önbellekleme Kullanımı:**
+```python
+import aioredis
+import json
+
+class CacheService:
+    def __init__(self):
+        self.redis = aioredis.from_url("redis://localhost")
+    
+    async def get_cached_data(self, key):
+        """Önbellekten veri alır."""
+        data = await self.redis.get(key)
+        return json.loads(data) if data else None
+    
+    async def set_cached_data(self, key, value, expire=3600):
+        """Önbelleğe veri ekler."""
+        await self.redis.set(key, json.dumps(value), ex=expire)
+```
+
+---
+
+## 📌 5. Hata Yönetimi
+✔ **WooCommerce API hataları `logs/api_errors.log` dosyasına kaydedilmelidir.**
+✔ **Kritik hatalar için bildirim mekanizması olmalıdır.**
+✔ **WooCommerce API rate limit aşımlarına karşı önlem alınmalıdır.**
+
+📌 **Örnek Hata Yönetimi:**
+```python
+import logging
+
+def handle_api_error(error_message, endpoint):
+    """WooCommerce API hatalarını loglar ve yöneticilere bildirir."""
+    logging.error(f"{endpoint} çağrısında hata: {error_message}")
+    notify_admin(f"WooCommerce API hatası: {error_message}")
+
+def notify_admin(message):
+    """Yöneticiye e-posta/SMS/Slack bildirimi gönderir."""
+    print(f"UYARI! Yöneticiye bildirildi: {message}")  # Gerçek sistemde mail/sms gönderimi yapılır.
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan WooCommerce API entegrasyonu gerçekleştirilemez.** 🚀
+

@@ -1,0 +1,113 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Sistem İzleme ve Loglama Standartları
+
+Bu belge, **tüm sistemin nasıl loglanacağını, hata kayıtlarının nasıl tutulacağını ve sistem izleme süreçlerinin nasıl işleyeceğini** belirler. **Tüm hata ve olay kayıtları takip edilebilir ve analiz edilebilir olmalıdır.**
+
+---
+
+## 📌 1. Genel Loglama Kuralları
+✔ **Tüm sistem olayları merkezi bir log sisteminde tutulmalıdır.**
+✔ **Hata logları detaylı ve yorumlanabilir olmalıdır.**
+✔ **Loglar otomatik döngüye alınmalı ve disk doluluğunu önlemek için temizlenmelidir.**
+✔ **Gerçek zamanlı log izleme sağlanmalıdır.**
+
+---
+
+## 📌 2. Loglama Seviyeleri
+✔ **Farklı log seviyeleri tanımlanmalıdır:**
+   - `DEBUG`: Hata ayıklama için düşük seviyeli bilgiler.
+   - `INFO`: Normal sistem olayları ve operasyonlar.
+   - `WARNING`: Potansiyel tehlikeli durumlar.
+   - `ERROR`: İşleyişi bozan hatalar.
+   - `CRITICAL`: Acil müdahale gerektiren durumlar.
+
+📌 **Örnek Log Formatı:**
+```json
+{
+    "timestamp": "2025-02-03T14:05:23",
+    "level": "ERROR",
+    "module": "woocommerce_sync",
+    "message": "Ürün senkronizasyonu başarısız oldu",
+    "details": "WooCommerce API bağlantı hatası (HTTP 500)"
+}
+```
+
+📌 **Örnek Python Loglama Yapısı:**
+```python
+import logging
+import json
+
+logging.basicConfig(filename='logs/system.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+def log_event(level, module, message, details=""):
+    log_data = {
+        "timestamp": logging.Formatter.formatTime(logging.Formatter(), None),
+        "level": level,
+        "module": module,
+        "message": message,
+        "details": details
+    }
+    logging.log(getattr(logging, level), json.dumps(log_data))
+```
+
+---
+
+## 📌 3. Hata Loglama Standartları
+✔ **Hatalar detaylı bir şekilde kaydedilmelidir.**
+✔ **Hata mesajları içinde çağrılan modül, hata tipi ve detayları bulunmalıdır.**
+✔ **Kritik hatalar gerçek zamanlı bildirim mekanizması ile yöneticilere iletilmelidir.**
+
+📌 **Örnek Hata Loglama:**
+```python
+import logging
+
+logging.basicConfig(filename='logs/errors.log', level=logging.ERROR,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+def log_error(module, error_message):
+    logging.error(f"Modül: {module} | Hata: {error_message}")
+```
+
+📌 **Örnek Gerçek Zamanlı Bildirim Entegrasyonu:**
+```python
+import requests
+
+def notify_admin(message):
+    """Kritik hataları Slack veya e-posta ile yöneticilere bildirir."""
+    webhook_url = "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    payload = {"text": message}
+    requests.post(webhook_url, json=payload)
+```
+
+---
+
+## 📌 4. Gerçek Zamanlı Log İzleme
+✔ **Gerçek zamanlı log izleme için `ELK Stack (Elasticsearch, Logstash, Kibana)` veya `Graylog` gibi araçlar entegre edilmelidir.**
+✔ **Sistem üzerindeki anormal aktiviteler tespit edilmeli ve yöneticilere raporlanmalıdır.**
+✔ **Loglar API ve web panel üzerinden izlenebilir olmalıdır.**
+
+📌 **Örnek Graylog Konfigürasyonu:**
+```yaml
+input:
+  gelf:
+    port: 12201
+    bind_address: 0.0.0.0
+    tls_cert_file: /etc/graylog/cert.pem
+    tls_key_file: /etc/graylog/key.pem
+```
+
+---
+
+## 📌 5. Log Temizleme ve Döngü Yönetimi
+✔ **Eski loglar otomatik olarak temizlenmelidir.**
+✔ **Log dosya boyutu belirli bir sınırın üzerine çıkmamalıdır.**
+✔ **Loglar, belirli bir sürenin ardından arşivlenmeli veya silinmelidir.**
+
+📌 **Örnek Otomatik Log Temizleme (Linux Cronjob):**
+```bash
+0 0 * * 1 find /var/logs/ -name "*.log" -type f -mtime +30 -delete
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan sistem izleme yapılamaz.** 🚀

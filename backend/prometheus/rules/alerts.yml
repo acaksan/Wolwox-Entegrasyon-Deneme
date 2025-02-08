@@ -1,0 +1,20 @@
+groups:
+  - name: wolvox_integration
+    rules:
+      - alert: HighErrorRate
+        expr: rate(wolvox_sync_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Yüksek hata oranı tespit edildi"
+          description: "Son 5 dakikada %10'dan fazla senkronizasyon hatası"
+
+      - alert: SlowSyncDuration
+        expr: histogram_quantile(0.95, rate(wolvox_sync_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Yavaş senkronizasyon tespit edildi"
+          description: "Senkronizasyon işlemleri 30 saniyeden uzun sürüyor" 

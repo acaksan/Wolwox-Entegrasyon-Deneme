@@ -1,0 +1,173 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Ağ Güvenliği ve Trafik Yönetimi Standartları
+
+Bu belge, **ağ güvenliğinin nasıl sağlanacağını, trafiğin nasıl yönetileceğini ve saldırılara karşı korunma yöntemlerini** belirler. **Sistem her zaman güvenli, kesintisiz ve izlenebilir olmalıdır.**
+
+---
+
+## 📌 1. Genel Ağ Güvenliği Kuralları
+✔ **Ağ erişimi yalnızca yetkilendirilmiş cihazlar ve kullanıcılar için açık olmalıdır.**
+✔ **Güvenlik duvarları (firewall) ve IPS/IDS sistemleri etkin şekilde yapılandırılmalıdır.**
+✔ **Tüm veri trafiği şifrelenmelidir (TLS/SSL).**
+✔ **DDoS ve diğer saldırılara karşı koruma mekanizmaları aktif edilmelidir.**
+✔ **Ağ logları merkezi bir sistemde saklanmalı ve analiz edilmelidir.**
+
+---
+
+## 📌 2. Güvenlik Duvarı (Firewall) Konfigürasyonu
+✔ **Yalnızca gerekli portlar açık tutulmalıdır.**
+✔ **İç ve dış ağ segmentleri ayrılmalıdır.**
+✔ **Tüm giriş ve çıkış trafiği denetlenmelidir.**
+✔ **Güvenlik duvarı politikaları düzenli olarak gözden geçirilmelidir.**
+
+📌 **Örnek Linux UFW Firewall Konfigürasyonu:**
+```bash
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp   # SSH bağlantısı
+ufw allow 80/tcp   # HTTP trafik
+ufw allow 443/tcp  # HTTPS trafik
+ufw enable
+```
+
+📌 **Örnek IPTables Kuralı:**
+```bash
+iptables -A INPUT -p tcp --dport 22 -s 192.168.1.0/24 -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j DROP
+```
+
+---
+
+## 📌 3. VPN ve Şifreli Bağlantılar
+✔ **Tüm hassas veri transferleri şifrelenmelidir.**
+✔ **Güvenli bağlantılar için VPN veya özel ağ (VPC) kullanılmalıdır.**
+✔ **Kullanıcı bağlantıları çok faktörlü kimlik doğrulama (MFA) ile korunmalıdır.**
+✔ **SSH bağlantıları yalnızca yetkilendirilmiş IP adreslerinden sağlanmalıdır.**
+
+📌 **Örnek OpenVPN Kurulumu:**
+```bash
+apt update && apt install openvpn easy-rsa
+cp -r /usr/share/easy-rsa /etc/openvpn/
+cd /etc/openvpn/easy-rsa
+./easyrsa init-pki
+./easyrsa build-ca
+./easyrsa build-server-full server nopass
+./easyrsa build-client-full client1 nopass
+```
+
+📌 **AWS VPC Güvenlik Grubu (Security Group) Konfigürasyonu:**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "ec2:DescribeInstances",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+---
+
+## 📌 4. Trafik Yönetimi ve Yük Dengeleme
+✔ **Ağ trafiği optimize edilmelidir.**
+✔ **Yüksek trafikli sistemlerde yük dengeleme zorunludur.**
+✔ **Uygulama katmanında yük dengeleme için Nginx veya HAProxy kullanılmalıdır.**
+✔ **Otomatik ölçeklendirme (Auto Scaling) politikaları belirlenmelidir.**
+
+📌 **Örnek Nginx Load Balancer Konfigürasyonu:**
+```nginx
+upstream backend_servers {
+    server 192.168.1.10;
+    server 192.168.1.11;
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://backend_servers;
+    }
+}
+```
+
+📌 **Örnek Kubernetes Auto Scaling Kullanımı:**
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+---
+
+## 📌 5. DDoS ve Saldırı Önleme
+✔ **Tüm ağ trafiği analiz edilmelidir.**
+✔ **Rate limiting (istek sınırlandırma) uygulanmalıdır.**
+✔ **Web Uygulama Güvenlik Duvarı (WAF) aktif edilmelidir.**
+✔ **Saldırı tespit sistemleri (IDS/IPS) etkinleştirilmelidir.**
+✔ **Şüpheli IP adresleri otomatik olarak engellenmelidir.**
+
+📌 **Örnek Fail2Ban Konfigürasyonu (SSH Koruma):**
+```bash
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+action = iptables[name=SSH, port=ssh, protocol=tcp]
+logpath = /var/log/auth.log
+bantime = 3600
+maxretry = 3
+```
+
+📌 **Örnek Cloudflare WAF Kullanımı:**
+```yaml
+firewall_rules:
+  - id: "rule-1"
+    action: "block"
+    expression: "(http.request.uri.path contains '/admin')"
+```
+
+---
+
+## 📌 6. Loglama ve İzleme
+✔ **Ağ logları merkezi bir sistemde saklanmalıdır.**
+✔ **Güvenlik olayları otomatik olarak analiz edilmelidir.**
+✔ **Anormal ağ aktiviteleri tespit edildiğinde uyarı sistemleri devreye girmelidir.**
+✔ **Loglar belirli periyotlarla temizlenmelidir.**
+
+📌 **Örnek Prometheus Node Exporter Kullanımı:**
+```bash
+wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+tar xvfz node_exporter-*.linux-amd64.tar.gz
+cd node_exporter-1.3.1.linux-amd64
+./node_exporter
+```
+
+📌 **Örnek Log İzleme (Graylog):**
+```yaml
+input:
+  gelf:
+    port: 12201
+    bind_address: 0.0.0.0
+    tls_cert_file: /etc/graylog/cert.pem
+    tls_key_file: /etc/graylog/key.pem
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan ağ güvenliği ve trafik yönetimi sağlanamaz.** 🚀
+

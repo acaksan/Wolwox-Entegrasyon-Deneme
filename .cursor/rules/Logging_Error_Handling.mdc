@@ -1,0 +1,109 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Loglama ve Hata Yönetimi Standartları
+
+Bu belge, **loglama ve hata yönetimi süreçlerini** belirler. Tüm hata yönetimi ve günlükleme işlemleri **tutarlı, detaylı ve izlenebilir olmalıdır**.
+
+---
+
+## 📌 1. Genel Kurallar
+✔ **Tüm işlemler loglanmalıdır.**
+   - **Başarılı ve başarısız işlemler kayıt altına alınmalıdır.**
+   - **Loglarda detaylı bilgi bulunmalıdır (timestamp, hata türü, çağıran modül vb.).**
+
+✔ **Hata yönetimi merkezi bir yapı üzerinden gerçekleştirilmelidir.**
+   - **Tüm hatalar `error_handler.py` üzerinden işlenmelidir.**
+   - **Kritik hatalar e-posta veya bildirim servisi ile yöneticilere iletilmelidir.**
+
+✔ **Log seviyeleri (Logging Levels) net olarak belirlenmelidir.**
+   - `DEBUG`: Hata ayıklama için düşük seviyeli bilgi.
+   - `INFO`: Genel çalışma bilgileri.
+   - `WARNING`: Potansiyel sorunlar.
+   - `ERROR`: İşleyişi bozan hatalar.
+   - `CRITICAL`: Acil müdahale gerektiren hatalar.
+
+✔ **Hata mesajları açıklayıcı ve sistematik olmalıdır.**
+   - **Kodun hangi satırında, hangi fonksiyonda hata oluştuğu açıkça belirtilmelidir.**
+   - **Özel hata mesajları tanımlanmalı ve hata ayıklama süreci kolaylaştırılmalıdır.**
+
+---
+
+## 📌 2. Loglama Standartları
+✔ **Tüm log kayıtları `logs/integration.log` dosyasında tutulmalıdır.**
+✔ **Loglar JSON formatında olmalı ve detay içermelidir.**
+✔ **İlgili servisler ve işlemler hangi log seviyesinde çalışacağı belirlenmelidir.**
+
+📌 **Örnek Log Formatı:**
+```json
+{
+    "timestamp": "2025-02-03T14:05:23",
+    "level": "ERROR",
+    "module": "woocommerce_product_service",
+    "message": "Ürün senkronizasyonu başarısız oldu",
+    "details": "WooCommerce API bağlantı hatası (HTTP 500)"
+}
+```
+
+📌 **Örnek Python Loglama Sistemi:**
+```python
+import logging
+import json
+
+logging.basicConfig(
+    filename='logs/integration.log', level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+def log_event(level, module, message, details=""):
+    log_data = {
+        "timestamp": logging.Formatter.formatTime(logging.Formatter(), None),
+        "level": level,
+        "module": module,
+        "message": message,
+        "details": details
+    }
+    logging.log(getattr(logging, level), json.dumps(log_data))
+```
+
+---
+
+## 📌 3. Hata Yönetimi Standartları
+✔ **Tüm hatalar merkezi hata yönetimi dosyası olan `error_handler.py` üzerinden ele alınacaktır.**
+✔ **Hata mesajları anlaşılır ve yönlendirici olmalıdır.**
+✔ **Kritik hatalar için yöneticilere e-posta bildirimleri veya Slack/Webhook entegrasyonu sağlanmalıdır.**
+
+📌 **Örnek Hata Yönetimi Sistemi:**
+```python
+import logging
+
+def handle_error(exception, module):
+    """Hataları loglayıp yöneticilere bildiren fonksiyon."""
+    error_message = f"Modül: {module} | Hata: {str(exception)}"
+    logging.error(error_message)
+    notify_admin(error_message)
+
+def notify_admin(message):
+    """Kritik hataları yöneticilere e-posta ile bildirir."""
+    print(f"UYARI! Yöneticiye bildirildi: {message}")  # Gerçek ortamda e-posta gönderimi yapılacaktır.
+```
+
+---
+
+## 📌 4. Kritik Hata Bildirimleri
+✔ **Kritik hatalar anlık olarak yöneticilere iletilmelidir.**
+✔ **Slack, e-posta veya Telegram API entegrasyonu kullanılabilir.**
+✔ **API hataları veya WooCommerce bağlantı sorunları öncelikli olarak ele alınmalıdır.**
+
+📌 **Örnek Slack Bildirim Entegrasyonu:**
+```python
+import requests
+
+def notify_slack(message):
+    """Kritik hataları Slack kanalına ileten fonksiyon."""
+    webhook_url = "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    payload = {"text": message}
+    requests.post(webhook_url, json=payload)
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan loglama ve hata yönetimi yapılamaz.** 🚀
+

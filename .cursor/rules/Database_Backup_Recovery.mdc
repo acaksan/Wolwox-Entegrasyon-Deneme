@@ -1,0 +1,90 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Veritabanı Yedekleme ve Kurtarma Standartları
+
+Bu belge, **veritabanının nasıl yedekleneceğini, veri kaybına karşı nasıl korunacağını ve olası kurtarma süreçlerini** belirler. **Veri güvenliği sağlanmalı ve herhangi bir hata durumunda hızlı bir geri yükleme yapılabilmelidir.**
+
+---
+
+## 📌 1. Genel Yedekleme Kuralları
+✔ **Tüm veritabanı yedekleme işlemleri otomatik olarak çalıştırılmalıdır.**
+✔ **Yedekleme işlemleri günlük olarak planlanmalıdır.**
+✔ **Yedekler, hem yerel hem de uzak bir sunucuda saklanmalıdır.**
+✔ **Yedekleme dosyaları şifrelenmeli ve erişim kontrolü sağlanmalıdır.**
+✔ **Yedekleme sonrası bütünlük kontrolü (checksum) yapılmalıdır.**
+
+📌 **Örnek Firebird Veritabanı Yedekleme Komutu:**
+```bash
+cd "C:\Program Files (x86)\Firebird\Firebird_2_5\bin"
+gbak -b -v -user SYSDBA -password masterkey localhost:/path/to/database.fdb /path/to/backup.fbk
+```
+
+📌 **Örnek Otomatik Yedekleme İçin Windows Görev Zamanlayıcı (Task Scheduler):**
+```bash
+schtasks /create /sc daily /tn "Firebird Backup" /tr "C:\backup_script.bat" /st 02:00
+```
+
+---
+
+## 📌 2. Yedekleme Türleri
+✔ **Tam Yedekleme (Full Backup):** Veritabanının tüm içeriğini yedekler (Günlük yapılmalıdır).
+✔ **Artımlı Yedekleme (Incremental Backup):** Sadece değişen verileri yedekler (Saatlik yapılabilir).
+✔ **Diferansiyel Yedekleme (Differential Backup):** Son tam yedekten sonra değişen verileri yedekler.
+
+📌 **Örnek Diferansiyel Yedekleme Komutu:**
+```bash
+gbak -b -d -user SYSDBA -password masterkey localhost:/path/to/database.fdb /path/to/diff_backup.fbk
+```
+
+---
+
+## 📌 3. Yedekleme Saklama Politikası
+✔ **Günlük yedekler 7 gün saklanmalıdır.**
+✔ **Haftalık yedekler 1 ay saklanmalıdır.**
+✔ **Aylık yedekler 1 yıl saklanmalıdır.**
+✔ **Eski yedekler otomatik olarak temizlenmelidir.**
+
+📌 **Örnek Otomatik Yedek Silme Komutu (Linux Cronjob):**
+```bash
+find /path/to/backups -name "*.fbk" -type f -mtime +30 -delete
+```
+
+---
+
+## 📌 4. Veri Kurtarma Süreci
+✔ **Her yedekleme sonrası test restorasyonu yapılmalıdır.**
+✔ **Acil durumlar için en son tam yedek her zaman erişilebilir olmalıdır.**
+✔ **Yedekten geri yükleme işlemi belirli aralıklarla test edilmelidir.**
+✔ **Hata durumlarında yedekleme logları incelenmeli ve yöneticilere bildirim gönderilmelidir.**
+
+📌 **Örnek Firebird Veritabanı Geri Yükleme Komutu:**
+```bash
+gbak -c -v -user SYSDBA -password masterkey /path/to/backup.fbk /path/to/restore.fdb
+```
+
+📌 **Örnek Geri Yükleme Testi (Windows):**
+```bash
+echo "Veritabanı yedeği test ediliyor..."
+gbak -c -v -user SYSDBA -password masterkey /path/to/backup.fbk /path/to/test_restore.fdb
+```
+
+---
+
+## 📌 5. Yedekleme Güvenliği
+✔ **Tüm yedekleme dosyaları AES-256 ile şifrelenmelidir.**
+✔ **Yetkilendirilmemiş kullanıcılar yedeklere erişememelidir.**
+✔ **Yedekleme işlemleri düzenli olarak loglanmalıdır.**
+✔ **Acil durumlarda eski yedeklerin bulunduğu fiziksel diskler saklanmalıdır.**
+
+📌 **Örnek AES-256 Şifreleme Komutu:**
+```bash
+openssl aes-256-cbc -salt -in /path/to/backup.fbk -out /path/to/backup_encrypted.fbk -k mysecretpassword
+```
+
+📌 **Örnek Şifreli Yedek Açma Komutu:**
+```bash
+openssl aes-256-cbc -d -in /path/to/backup_encrypted.fbk -out /path/to/backup.fbk -k mysecretpassword
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan yedekleme ve kurtarma süreçleri yürütülemez.** 🚀
+

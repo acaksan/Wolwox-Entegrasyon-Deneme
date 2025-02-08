@@ -1,0 +1,149 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Altyapı ve Sunucu Yönetimi Standartları
+
+Bu belge, **sunucu yapılandırmalarının nasıl olması gerektiğini, yük dengeleme ve ölçeklendirme yöntemlerini, güvenli erişim politikalarını ve sistem bakım süreçlerini** belirler. **Sistem her zaman güvenli, yüksek erişilebilirlikte ve ölçeklenebilir olmalıdır.**
+
+---
+
+## 📌 1. Genel Sunucu Yönetim Kuralları
+✔ **Tüm sunucular belirli bir yapılandırma standardına uygun olmalıdır.**
+✔ **Sunucu konfigürasyonları Infrastructure-as-Code (IaC) araçlarıyla yönetilmelidir (Terraform, Ansible).**
+✔ **Otomatik yedekleme, log yönetimi ve güncellemeler düzenli olarak yapılmalıdır.**
+✔ **Sistem izleme ve performans ölçümü sürekli yapılmalıdır.**
+✔ **Yetkisiz erişimler engellenmeli ve sunucu güvenliği önceliklendirilmelidir.**
+
+---
+
+## 📌 2. Sunucu Konfigürasyonu
+✔ **Sunucular en güncel işletim sistemi ve güvenlik yamaları ile güncel tutulmalıdır.**
+✔ **SSH bağlantıları yalnızca belirli IP adreslerine izin verilmelidir.**
+✔ **Güvenlik duvarı (firewall) ile gereksiz portlar kapatılmalıdır.**
+✔ **Sunucu logları merkezi bir sistemde (Graylog, ELK) saklanmalıdır.**
+✔ **Root erişimi devre dışı bırakılmalı, yetkilendirilmiş kullanıcılar SSH anahtarlarıyla bağlanmalıdır.**
+
+📌 **Örnek Güvenlik Duvarı Ayarları (Linux UFW)**
+```bash
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp   # SSH bağlantısı
+ufw allow 80/tcp   # HTTP trafik
+ufw allow 443/tcp  # HTTPS trafik
+ufw enable
+```
+
+📌 **Örnek SSH Yetkilendirme:**
+```bash
+nano /etc/ssh/sshd_config
+# PermitRootLogin no
+# PasswordAuthentication no
+# AllowUsers admin_user
+systemctl restart sshd
+```
+
+---
+
+## 📌 3. Yük Dengeleme (Load Balancing) ve Ölçeklendirme
+✔ **Yüksek trafikli sistemlerde yük dengeleme zorunludur.**
+✔ **Uygulama ölçeklendirme için Docker, Kubernetes veya Load Balancer kullanılmalıdır.**
+✔ **Auto Scaling politikaları belirlenmeli ve kaynaklar dinamik olarak ayarlanmalıdır.**
+✔ **Veritabanı replikasyonu (master-slave) ile yüksek erişilebilirlik sağlanmalıdır.**
+
+📌 **Örnek Nginx Load Balancer Konfigürasyonu:**
+```nginx
+upstream backend_servers {
+    server 192.168.1.10;
+    server 192.168.1.11;
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://backend_servers;
+    }
+}
+```
+
+📌 **Örnek Kubernetes Auto Scaling Kullanımı:**
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+---
+
+## 📌 4. Güvenli Erişim Politikaları
+✔ **Tüm sunucu erişimleri merkezi bir kimlik doğrulama sistemi (LDAP, IAM) ile yönetilmelidir.**
+✔ **SSH bağlantıları MFA (Çok Faktörlü Kimlik Doğrulama) ile korunmalıdır.**
+✔ **Yetkilendirilmemiş erişimler anında engellenmeli ve bildirilmelidir.**
+✔ **VPN veya özel ağ (VPC) kullanılmalıdır.**
+
+📌 **Örnek OpenVPN Kurulumu:**
+```bash
+apt update && apt install openvpn easy-rsa
+cp -r /usr/share/easy-rsa /etc/openvpn/
+cd /etc/openvpn/easy-rsa
+./easyrsa init-pki
+./easyrsa build-ca
+./easyrsa build-server-full server nopass
+./easyrsa build-client-full client1 nopass
+```
+
+📌 **AWS IAM Kullanıcı Erişim Politikası:**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "ec2:DescribeInstances",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+---
+
+## 📌 5. Sistem Bakımı ve İzleme
+✔ **Tüm sistemler düzenli olarak izlenmeli ve raporlanmalıdır.**
+✔ **Prometheus ve Grafana gibi araçlarla performans analizi yapılmalıdır.**
+✔ **Sunucu disk kullanımı ve CPU yükü sürekli izlenmelidir.**
+✔ **Anormal durumlar tespit edildiğinde otomatik uyarı sistemleri çalıştırılmalıdır.**
+✔ **Yedekleme politikaları uygulanmalı ve test edilmelidir.**
+
+📌 **Örnek Prometheus Node Exporter Kullanımı:**
+```bash
+wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+tar xvfz node_exporter-*.linux-amd64.tar.gz
+cd node_exporter-1.3.1.linux-amd64
+./node_exporter
+```
+
+📌 **Örnek Log İzleme (Graylog):**
+```yaml
+input:
+  gelf:
+    port: 12201
+    bind_address: 0.0.0.0
+    tls_cert_file: /etc/graylog/cert.pem
+    tls_key_file: /etc/graylog/key.pem
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan altyapı ve sunucu yönetimi yapılamaz.** 🚀
+

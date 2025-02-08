@@ -1,0 +1,138 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - Güvenlik ve Yetkilendirme Standartları
+
+Bu belge, **veri güvenliği, kullanıcı yetkilendirme süreçleri ve API güvenlik politikalarını** belirler. **Tüm sistem güvenlik önlemleri en üst seviyede olmalıdır.**
+
+---
+
+## 📌 1. Genel Güvenlik Kuralları
+✔ **Tüm sistem girişleri ve hassas işlemler için kimlik doğrulama gereklidir.**
+✔ **Veri şifreleme (encryption) standart hale getirilmelidir.**
+✔ **Yetkilendirme ve erişim kontrolü açıkça tanımlanmalıdır.**
+✔ **Güvenlik açıkları düzenli olarak test edilmelidir.**
+✔ **API anahtarları ve hassas veriler `.env` dosyasında saklanmalıdır.**
+
+---
+
+## 📌 2. Kimlik Doğrulama (Authentication)
+✔ **JWT (JSON Web Token) kullanılmalıdır.**
+✔ **Kullanıcı girişleri için e-posta doğrulama zorunlu olmalıdır.**
+✔ **Kullanıcı giriş denemeleri sınırlandırılmalıdır (Rate Limiting).**
+✔ **Şifreler `bcrypt` veya `argon2` ile hashlenmelidir.**
+✔ **Çok faktörlü kimlik doğrulama (2FA) desteklenmelidir.**
+
+📌 **Örnek Kullanıcı Şifre Hashleme:**
+```python
+from passlib.hash import bcrypt
+
+def hash_password(password):
+    return bcrypt.hash(password)
+
+def verify_password(password, hashed):
+    return bcrypt.verify(password, hashed)
+```
+
+📌 **Örnek JWT Token Oluşturma:**
+```python
+import jwt
+import datetime
+import os
+
+def create_jwt(user_id):
+    payload = {
+        "user_id": user_id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
+    }
+    return jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm="HS256")
+```
+
+---
+
+## 📌 3. Yetkilendirme (Authorization)
+✔ **Her kullanıcı rol bazlı yetkilendirme ile yönetilmelidir.**
+✔ **Admin ve normal kullanıcı yetkileri ayrılmalıdır.**
+✔ **Hassas endpoint'ler ek güvenlik kontrollerine sahip olmalıdır.**
+
+📌 **Örnek Yetkilendirme Middleware:**
+```python
+from flask import request, jsonify
+import jwt
+import os
+
+def admin_required(f):
+    def wrapper(*args, **kwargs):
+        token = request.headers.get("Authorization")
+        if not token:
+            return jsonify({"error": "Yetkisiz erişim"}), 403
+        try:
+            decoded = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
+            if decoded.get("role") != "admin":
+                return jsonify({"error": "Yetkisiz erişim"}), 403
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token süresi doldu"}), 403
+        return f(*args, **kwargs)
+    return wrapper
+```
+
+---
+
+## 📌 4. API Güvenliği
+✔ **API erişimleri `OAuth2` veya `JWT` ile doğrulanmalıdır.**
+✔ **Tüm API çağrıları HTTPS üzerinden yapılmalıdır.**
+✔ **Cross-Site Scripting (XSS) ve SQL Injection saldırılarına karşı önlem alınmalıdır.**
+✔ **CORS (Cross-Origin Resource Sharing) politikaları tanımlanmalıdır.**
+✔ **Rate Limiting uygulanmalıdır (örn: 100 istek/dakika).**
+
+📌 **Örnek Rate Limiting Kullanımı (Flask-Limiter):**
+```python
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+@app.route("/secure-endpoint")
+@limiter.limit("10 per minute")
+def secure_resource():
+    return {"message": "Bu API'yi kullanmak için yetkiniz var."}
+```
+
+---
+
+## 📌 5. Veri Şifreleme (Encryption)
+✔ **Hassas veriler AES-256 ile şifrelenmelidir.**
+✔ **Şifrelenmiş veriler yalnızca yetkili kullanıcılar tarafından erişilebilir olmalıdır.**
+✔ **Kredi kartı ve ödeme bilgileri gibi veriler sistemde saklanmamalıdır.**
+
+📌 **Örnek AES-256 Şifreleme:**
+```python
+from Crypto.Cipher import AES
+import base64
+import os
+
+def encrypt_data(data, key):
+    cipher = AES.new(key.encode(), AES.MODE_EAX)
+    ciphertext, tag = cipher.encrypt_and_digest(data.encode())
+    return base64.b64encode(cipher.nonce + ciphertext).decode()
+```
+
+---
+
+## 📌 6. Günlükleme ve Güvenlik İzleme
+✔ **Tüm güvenlik olayları `logs/security.log` dosyasına yazılmalıdır.**
+✔ **Yetkisiz erişim denemeleri kaydedilmeli ve yöneticilere bildirilmelidir.**
+✔ **Sistem, saldırı girişimlerini tespit etmek için IDS (Intrusion Detection System) entegrasyonu sağlamalıdır.**
+
+📌 **Örnek Güvenlik Loglama:**
+```python
+import logging
+
+logging.basicConfig(filename='logs/security.log', level=logging.WARNING,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+def log_security_event(event_type, message):
+    logging.warning(f"{event_type}: {message}")
+```
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan güvenlik sistemi yapılandırılamaz.** 🚀
+

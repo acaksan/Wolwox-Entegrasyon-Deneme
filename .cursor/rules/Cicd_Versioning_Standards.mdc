@@ -1,0 +1,111 @@
+### 🚀 Wolvox-WooCommerce Entegrasyonu - CI/CD ve Sürüm Yönetimi Standartları
+
+Bu belge, **CI/CD süreçlerinin nasıl çalışacağını, kod sürüm yönetiminin nasıl yapılacağını ve otomatik dağıtım stratejilerini** belirler. **Sistem, hızlı, güvenli ve hatasız bir şekilde sürekli entegrasyon ve dağıtım süreçlerine uygun olmalıdır.**
+
+---
+
+## 📌 1. CI/CD (Sürekli Entegrasyon ve Sürekli Dağıtım) Kuralları
+✔ **Tüm kod değişiklikleri, test sürecinden geçmeden ana (master/main) dala alınamaz.**
+✔ **CI/CD süreçleri GitHub Actions, GitLab CI veya Jenkins gibi otomasyon araçları ile yönetilmelidir.**
+✔ **Her yeni özellik (feature) geliştirme dalında (branch) yapılmalıdır.**
+✔ **Kodlar `pull request` (PR) üzerinden gözden geçirilmeden (code review) birleştirilemez.**
+✔ **Tüm CI/CD süreçleri loglanmalı ve hata durumları raporlanmalıdır.**
+✔ **Dağıtım süreci (deployment) manuel onay gerektirmeli veya otomatik yapılmalıdır.**
+
+📌 **CI/CD Pipeline Akışı:**
+1️⃣ **Kod değişikliği yapıldığında pipeline çalıştırılır.**
+2️⃣ **Kod statik analiz (Linting) testlerinden geçirilir.**
+3️⃣ **Ünite (Unit) ve Entegrasyon (Integration) testleri çalıştırılır.**
+4️⃣ **Başarılı testler sonrası pre-prod ortamına deployment yapılır.**
+5️⃣ **Manuel onaydan sonra canlı (production) ortama geçiş yapılır.**
+
+---
+
+## 📌 2. Git Sürüm Yönetimi Standartları
+✔ **Git Flow yöntemi kullanılmalıdır.**
+✔ **Ana dallar (branches) aşağıdaki gibi yapılandırılmalıdır:**
+   - `main (master)`: Canlıdaki en güncel ve stabil versiyon.
+   - `develop`: Aktif geliştirme ortamı.
+   - `feature/*`: Yeni özellik geliştirme dalları.
+   - `hotfix/*`: Acil hata düzeltmeleri.
+   - `release/*`: Canlıya çıkmadan önce yapılan son testler.
+✔ **Commit mesajları anlamlı ve açıklayıcı olmalıdır.**
+✔ **Her commit mesajı belirlenen formatta yazılmalıdır:**
+   - `feat: Yeni bir özellik eklendi`
+   - `fix: Bir hata düzeltildi`
+   - `docs: Dokümantasyon güncellendi`
+   - `refactor: Kod yapısı yeniden düzenlendi`
+   - `test: Test dosyaları eklendi veya değiştirildi`
+
+📌 **Örnek Commit Mesajı:**
+```bash
+git commit -m "feat: WooCommerce ürün senkronizasyonu eklendi"
+```
+
+---
+
+## 📌 3. Otomatik Dağıtım (Deployment) Standartları
+✔ **Dağıtımlar belirli bir pipeline üzerinden yapılmalıdır.**
+✔ **Pre-production (ön-prod) ortamında test edilmeden canlı ortama geçiş yapılmamalıdır.**
+✔ **Otomatik hata izleme ve rollback mekanizmaları bulunmalıdır.**
+✔ **Yeni dağıtımlardan önce veritabanı yedeklemesi alınmalıdır.**
+✔ **Sistem çalışma süresi (`uptime`) %99.9 seviyesinde olmalıdır.**
+
+📌 **Örnek CI/CD Deployment Pipeline (GitHub Actions):**
+```yaml
+name: CI/CD Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu Al
+        uses: actions/checkout@v2
+      
+      - name: Bağımlılıkları Yükle
+        run: pip install -r requirements.txt
+      
+      - name: Testleri Çalıştır
+        run: pytest
+      
+      - name: Docker Image Build
+        run: docker build -t myapp:latest .
+      
+      - name: Uygulamayı Sunucuya Yükle
+        run: scp -r . user@server:/var/www/myapp/
+      
+      - name: Sunucuyu Yeniden Başlat
+        run: ssh user@server 'sudo systemctl restart myapp'
+```
+
+---
+
+## 📌 4. Sürümleme (Versioning) Standartları
+✔ **Semantic Versioning (SemVer) kullanılmalıdır.**
+✔ **Her sürüm `MAJOR.MINOR.PATCH` formatında olmalıdır.**
+   - **MAJOR (Ana sürüm)**: Büyük değişiklikler ve geriye dönük uyumsuzluklar.
+   - **MINOR (Alt sürüm)**: Yeni özellikler, geriye dönük uyumluluk korunur.
+   - **PATCH (Yama sürüm)**: Küçük hata düzeltmeleri ve iyileştirmeler.
+
+📌 **Örnek Versiyonlama Kullanımı:**
+```bash
+git tag -a v1.2.3 -m "v1.2.3 yayınlandı"
+git push origin v1.2.3
+```
+
+📌 **Örnek Semantic Versioning:**
+| Versiyon | Açıklama |
+|----------|---------|
+| 1.0.0 | İlk stabil sürüm |
+| 1.1.0 | Yeni özellik eklendi |
+| 1.1.1 | Küçük bir hata düzeltildi |
+| 2.0.0 | Geriye dönük uyumsuzluk içeren büyük değişiklik |
+
+---
+
+Bu belge **katı kurallar içermektedir** ve **bu kurallara uyulmadan CI/CD süreçleri ve sürüm yönetimi yapılamaz.** 🚀

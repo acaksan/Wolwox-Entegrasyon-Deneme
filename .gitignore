@@ -1,45 +1,61 @@
-__pycache__/
-*.pyc
-.env
-venv/ 
-node_modules
-
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+.pnp/
 .pnp.js
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
 
-# testing
-/coverage
+# Testing
+.coverage
+coverage/
+.pytest_cache/
+htmlcov/
 
-# production
-/build
+# Production
+build/
+dist/
+.next/
+out/
 
-# misc
-.DS_Store
+# Environment
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# logs
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/logs
-*.log
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.DS_Store
 
-# OS
-Thumbs.db
-desktop.ini
+# Docker
+.docker/
 
-# Firebird
+# Cache
+.eslintcache
+.mypy_cache/
+.npm/
+
+# Database
+*.sqlite3
+*.db
 *.fdb
-*.fbk
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
